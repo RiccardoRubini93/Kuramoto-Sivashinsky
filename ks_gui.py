@@ -317,9 +317,9 @@ class KSGUI:
                 # Ensure spectral density is positive (handle numerical precision)
                 spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                 
-                self.ax3.semilogy(wavelength, spec_nonzero, 'g-', linewidth=2)
-                self.ax3.set_xlabel('Wavelength λ')
-                self.ax3.set_ylabel('Spectral Density')
+                self.ax3.loglog(wavelength, spec_nonzero, 'g-', linewidth=2)
+                self.ax3.set_xlabel('Wavelength λ (log scale)')
+                self.ax3.set_ylabel('Spectral Density (log scale)')
                 self.ax3.set_title('Power Spectrum vs Wavelength')
                 self.ax3.grid(True, alpha=0.3)
                 # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
