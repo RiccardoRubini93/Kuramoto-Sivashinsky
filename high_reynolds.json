@@ -1,0 +1,30 @@
+{
+  "simulation": {
+    "L": 32.0,
+    "N": 256,
+    "dt": 0.25,
+    "diffusion": 0.5,
+    "initial_condition": "default",
+    "n_steps": 1000,
+    "n_transient": 500
+  },
+  "visualization": {
+    "xlim": [
+      0,
+      16
+    ],
+    "ylim": [
+      -5,
+      5
+    ],
+    "animation_interval": 25,
+    "fps": 40,
+    "colormap": "magma"
+  },
+  "output": {
+    "save_animation": false,
+    "save_data": false,
+    "animation_filename": "KS_animation.mp4",
+    "data_filename": "KS_data.npz"
+  }
+}
