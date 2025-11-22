@@ -517,11 +517,11 @@ class KSWebGUI:
                         # Calculate x-axis range safely with robust validation
                         # Ensure positive values and handle edge cases
                         wavelength_min = max(float(wavelength.min()), 1e-10)
-                        wavelength_max = max(float(wavelength.max()), wavelength_min)
+                        wavelength_max = float(wavelength.max())
                         
-                        # Ensure we have a reasonable range (at least 10x)
-                        if wavelength_max < wavelength_min * 10:
-                            wavelength_max = wavelength_min * 10
+                        # Ensure wavelength_max is at least 10% larger than wavelength_min for visibility
+                        if wavelength_max < wavelength_min * 1.1:
+                            wavelength_max = wavelength_min * 1.1
                         
                         # Validate that log10 will succeed
                         if wavelength_min > 0 and wavelength_max > wavelength_min:
