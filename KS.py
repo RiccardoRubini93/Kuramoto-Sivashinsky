@@ -62,6 +62,8 @@ class KS(object):
                 x = 0.1 * np.random.rand(N)
             elif initial_condition == 'sine':
                 x = np.sin(4*np.pi*self.xx/(2*np.pi*L))
+            elif initial_condition == 'zero':
+                x = np.zeros(N)
             else:
                 raise ValueError(f"Unknown initial condition: {initial_condition}")
         else:

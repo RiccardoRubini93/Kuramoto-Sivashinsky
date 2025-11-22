@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Initial conditions to compare
-initial_conditions = ['default', 'random', 'sine']
-colors = ['blue', 'red', 'green']
+initial_conditions = ['default', 'random', 'sine', 'zero']
+colors = ['blue', 'red', 'green', 'orange']
 
-fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+fig, axes = plt.subplots(4, 2, figsize=(14, 16))
 
 for idx, (ic, color) in enumerate(zip(initial_conditions, colors)):
     print(f"\nSimulating with '{ic}' initial condition...")
