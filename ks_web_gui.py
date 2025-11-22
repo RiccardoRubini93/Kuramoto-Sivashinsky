@@ -53,8 +53,8 @@ class KSWebGUI:
         self.is_running = False
         
         # Data storage using deque for efficient rolling buffers
-        self.energy_history = []
-        self.time_history = []
+        self.energy_history = deque(maxlen=self.HISTORY_BUFFER_SIZE)
+        self.time_history = deque(maxlen=self.HISTORY_BUFFER_SIZE)
         self.spacetime_data = deque(maxlen=200)  # Keep last 200 frames
         
         # Spectrum history for time averaging using deque
@@ -67,8 +67,8 @@ class KSWebGUI:
     def _reset_simulation_state(self):
         """Reset simulation state and data storage."""
         self.simulator = None
-        self.energy_history = []
-        self.time_history = []
+        self.energy_history.clear()
+        self.time_history.clear()
         self.spacetime_data.clear()
         self.spectrum_history.clear()
     
@@ -400,8 +400,8 @@ class KSWebGUI:
                     
                     self.simulator = KSSimulator(config)
                     self.simulator.run_transient()
-                    self.energy_history = []
-                    self.time_history = []
+                    self.energy_history.clear()
+                    self.time_history.clear()
                     self.spacetime_data.clear()
                     self.spectrum_history.clear()
                     
@@ -455,14 +455,9 @@ class KSWebGUI:
                 # Get current state
                 current_state = self.simulator.get_current_state()
                 
-                # Update energy history (used in status panel display)
+                # Update energy history (deque handles max length automatically)
                 self.energy_history.append(current_state['energy'])
                 self.time_history.append(current_state['t'])
-                
-                # Keep only last HISTORY_BUFFER_SIZE points
-                if len(self.energy_history) > self.HISTORY_BUFFER_SIZE:
-                    self.energy_history.pop(0)
-                    self.time_history.pop(0)
                 
                 # Store data for spacetime plot (deque handles max length automatically)
                 self.spacetime_data.append(current_state['u'].copy())
@@ -487,7 +482,13 @@ class KSWebGUI:
                         spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                         
                         # Store spectrum for time averaging (deque handles max length automatically)
-                        self.spectrum_history.append(spec_nonzero.copy())
+                        # Only store if we have a consistent array size or if history is empty
+                        if len(self.spectrum_history) == 0 or len(spec_nonzero) == len(self.spectrum_history[0]):
+                            self.spectrum_history.append(spec_nonzero.copy())
+                        else:
+                            # If size changed (e.g., simulation reset), clear history and start fresh
+                            self.spectrum_history.clear()
+                            self.spectrum_history.append(spec_nonzero.copy())
                         
                         # Calculate time-averaged spectrum
                         spec_avg = np.mean(self.spectrum_history, axis=0)
