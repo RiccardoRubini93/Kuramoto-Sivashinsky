@@ -28,6 +28,10 @@ class KSWebGUI:
     # Spectrum plot configuration (log10 scale exponents)
     SPECTRUM_Y_LOG_MIN = -8  # Minimum y-axis value: 10^-8
     SPECTRUM_Y_LOG_MAX = 2   # Maximum y-axis value: 10^2
+    SPECTRUM_WAVELENGTH_MIN = 1e-10  # Minimum wavelength value for log scale
+    SPECTRUM_MIN_RANGE_FACTOR = 1.1  # Minimum range factor (10% increase)
+    SPECTRUM_X_FALLBACK_MIN = -2  # Fallback x-axis range minimum
+    SPECTRUM_X_FALLBACK_MAX = 2   # Fallback x-axis range maximum
     
     def __init__(self, port=DEFAULT_PORT, debug=False, host='127.0.0.1'):
         """
@@ -476,10 +480,10 @@ class KSWebGUI:
                         wavelength = 2 * np.pi / k_nonzero
                         
                         # Ensure wavelength values are positive and valid for log scale
-                        wavelength = np.maximum(wavelength, 1e-10)
+                        wavelength = np.maximum(wavelength, self.SPECTRUM_WAVELENGTH_MIN)
                         
                         # Ensure spectral density is positive (handle numerical precision)
-                        spec_nonzero = np.maximum(spec_nonzero, 1e-10)
+                        spec_nonzero = np.maximum(spec_nonzero, self.SPECTRUM_WAVELENGTH_MIN)
                         
                         # Store spectrum for time averaging (deque handles max length automatically)
                         # Check for consistent array size or reset if size changed
@@ -516,19 +520,19 @@ class KSWebGUI:
                         
                         # Calculate x-axis range safely with robust validation
                         # Ensure positive values and handle edge cases
-                        wavelength_min = max(float(wavelength.min()), 1e-10)
+                        wavelength_min = max(float(wavelength.min()), self.SPECTRUM_WAVELENGTH_MIN)
                         wavelength_max = float(wavelength.max())
                         
-                        # Ensure wavelength_max is at least 10% larger than wavelength_min for visibility
-                        if wavelength_max < wavelength_min * 1.1:
-                            wavelength_max = wavelength_min * 1.1
+                        # Ensure wavelength_max maintains minimum range for visibility
+                        if wavelength_max < wavelength_min * self.SPECTRUM_MIN_RANGE_FACTOR:
+                            wavelength_max = wavelength_min * self.SPECTRUM_MIN_RANGE_FACTOR
                         
                         # Validate that log10 will succeed
                         if wavelength_min > 0 and wavelength_max > wavelength_min:
                             x_range = [np.log10(wavelength_min), np.log10(wavelength_max)]
                         else:
                             # Fallback to safe default range
-                            x_range = [-2, 2]
+                            x_range = [self.SPECTRUM_X_FALLBACK_MIN, self.SPECTRUM_X_FALLBACK_MAX]
                         
                         spectrum_fig.update_layout(
                             title='Power Spectrum vs Wavelength (Time-Averaged)',
