@@ -261,7 +261,7 @@ class KSGUI:
     
     def update_plot(self, frame):
         """Update the plot for animation."""
-        if not self.is_running:
+        if not self.is_running or self.simulator is None:
             return
         
         # Step the simulation
@@ -313,6 +313,9 @@ class KSGUI:
             
             if len(k_nonzero) > 0:
                 wavelength = 2 * np.pi / k_nonzero
+                
+                # Ensure spectral density is positive (handle numerical precision)
+                spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                 
                 self.ax3.semilogy(wavelength, spec_nonzero, 'g-', linewidth=2)
                 self.ax3.set_xlabel('Wavelength λ')
