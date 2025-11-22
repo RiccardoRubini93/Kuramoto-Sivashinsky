@@ -302,6 +302,21 @@ class KSWebGUI:
                                          'fontWeight': 'bold', 'fontSize': '14px', 'textTransform': 'uppercase'}),
                     ]),
                     
+                    # View Control section
+                    html.Div([
+                        html.H4("3D View Control", style={'color': '#00ccff'}),
+                        html.Button('View from Z-axis (X-T plane)', id='view-z-btn', n_clicks=0,
+                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '8px',
+                                         'backgroundColor': '#9966ff', 'color': 'white', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '13px'}),
+                        html.Button('View from T-axis (X-Z plane)', id='view-t-btn', n_clicks=0,
+                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '20px',
+                                         'backgroundColor': '#ff9966', 'color': 'white', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '13px'}),
+                    ], style={'marginBottom': '20px'}),
+                    
                     # Export section
                     html.Div([
                         html.H4("Export", style={'color': '#00ccff'}),
@@ -346,6 +361,7 @@ class KSWebGUI:
             
             # Hidden divs for state management
             dcc.Store(id='simulation-state', data={'running': False, 'initialized': False}),
+            dcc.Store(id='camera-view', data='default'),  # Store for camera view selection
             dcc.Interval(id='interval-component', interval=self.UPDATE_INTERVAL_MS, n_intervals=0, disabled=True),
             
         ], style={'fontFamily': 'Arial, sans-serif', 'backgroundColor': '#0a0e27', 'minHeight': '100vh'})
@@ -432,10 +448,11 @@ class KSWebGUI:
              Output('spacetime-plot', 'figure'),
              Output('info-text', 'children', allow_duplicate=True)],
             [Input('interval-component', 'n_intervals')],
-            [State('simulation-state', 'data')],
+            [State('simulation-state', 'data'),
+             State('camera-view', 'data')],
             prevent_initial_call=True
         )
-        def update_plots(n_intervals, state):
+        def update_plots(n_intervals, state, camera_view=None):
             """
             Update plots with simulation data.
             
@@ -443,6 +460,10 @@ class KSWebGUI:
             the preset callback and this callback. Without it, Dash would raise an error
             preventing multiple callbacks from targeting the same output component.
             """
+            # Default camera view if None
+            if camera_view is None:
+                camera_view = 'default'
+            
             if not state.get('running', False) or self.simulator is None:
                 # Return empty figures when not running
                 empty_fig = go.Figure()
@@ -584,6 +605,29 @@ class KSWebGUI:
                         time_end = current_state['t']
                         time_axis = np.linspace(time_start, time_end, len(self.spacetime_data))
                         
+                        # Determine camera position based on selected view
+                        if camera_view == 'z_axis':
+                            # View from Z-axis: looking down to see X-T plane
+                            camera_dict = dict(
+                                eye=dict(x=0, y=0, z=2.5),  # Look from above
+                                center=dict(x=0, y=0, z=0),
+                                up=dict(x=0, y=1, z=0)  # T-axis points up
+                            )
+                        elif camera_view == 't_axis':
+                            # View from T-axis: looking along time to see X-Z plane
+                            camera_dict = dict(
+                                eye=dict(x=0, y=2.5, z=0),  # Look from the side along time
+                                center=dict(x=0, y=0, z=0),
+                                up=dict(x=0, y=0, z=1)  # Z-axis points up
+                            )
+                        else:
+                            # Default 3D perspective view
+                            camera_dict = dict(
+                                eye=dict(x=1.5, y=-1.8, z=0.8),
+                                center=dict(x=0, y=0.2, z=0),
+                                up=dict(x=0, y=0, z=1)
+                            )
+                        
                         # Create 3D surface plot
                         spacetime_fig.add_trace(go.Surface(
                             z=spacetime_array,
@@ -606,11 +650,7 @@ class KSWebGUI:
                                 xaxis=dict(title='x', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
                                 yaxis=dict(title='Time', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
                                 zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True, range=[-5, 5]),
-                                camera=dict(
-                                    eye=dict(x=1.5, y=-1.8, z=0.8),  # Camera position for "following" perspective
-                                    center=dict(x=0, y=0.2, z=0),
-                                    up=dict(x=0, y=0, z=1)
-                                ),
+                                camera=camera_dict,
                                 aspectmode='manual',  # Use manual aspect mode for better width control
                                 aspectratio=dict(x=2.0, y=1.5, z=0.5)  # Make plot wider (x=2.0 increases width)
                             ),
@@ -620,7 +660,8 @@ class KSWebGUI:
                             font=dict(color='#e0e0e0'),
                             hovermode='closest',
                             dragmode='orbit',  # Enable orbit dragmode for mouse rotation
-                            margin=dict(l=0, r=0, t=30, b=0)  # Minimize margins to maximize plot area
+                            margin=dict(l=0, r=0, t=30, b=0),  # Minimize margins to maximize plot area
+                            uirevision=camera_view  # Preserve user rotations when camera_view stays the same; apply new camera position when view changes
                         )
                     except Exception as e:
                         # If spacetime plot fails, show error message
@@ -645,7 +686,8 @@ class KSWebGUI:
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
                             font=dict(color='#e0e0e0'),
                             dragmode='orbit',
-                            margin=dict(l=0, r=0, t=30, b=0)
+                            margin=dict(l=0, r=0, t=30, b=0),
+                            uirevision=camera_view  # Change uirevision when view changes
                         )
                 else:
                     spacetime_fig.add_annotation(
@@ -669,7 +711,8 @@ class KSWebGUI:
                         plot_bgcolor='rgba(20, 25, 45, 0.3)',
                         font=dict(color='#e0e0e0'),
                         dragmode='orbit',
-                        margin=dict(l=0, r=0, t=30, b=0)
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        uirevision=camera_view  # Change uirevision when view changes
                     )
                 
                 # Update info
@@ -763,6 +806,28 @@ class KSWebGUI:
                 error_msg = f"Error saving config: {e}"
                 logging.error(error_msg)
                 return None
+        
+        @self.app.callback(
+            Output('camera-view', 'data'),
+            [Input('view-z-btn', 'n_clicks'),
+             Input('view-t-btn', 'n_clicks')],
+            [State('camera-view', 'data')],
+            prevent_initial_call=True
+        )
+        def update_camera_view(view_z_clicks, view_t_clicks, current_view):
+            """Update camera view based on button clicks."""
+            ctx = callback_context
+            if not ctx.triggered:
+                return current_view
+            
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            
+            if button_id == 'view-z-btn':
+                return 'z_axis'
+            elif button_id == 'view-t-btn':
+                return 't_axis'
+            
+            return current_view
     
     def run(self):
         """Run the web application."""
