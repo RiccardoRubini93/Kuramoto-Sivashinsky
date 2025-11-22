@@ -28,20 +28,39 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Graphical User Interface
+### Web-Based Graphical User Interface (Recommended)
 
-Launch the interactive GUI:
+Launch the interactive web GUI:
 
 ```bash
-python ks_gui.py
+python ks_web_gui.py
 ```
 
+Then open your web browser and navigate to `http://localhost:8050`
+
 Features:
+- **Browser-based interface** - works on any platform without tkinter dependencies
 - Real-time parameter adjustment
-- Live visualization of solution and energy
+- Live visualization of solution and energy with interactive Plotly charts
 - Preset configurations (low/medium/high Reynolds number)
 - Save/load configurations
-- Export simulation data
+- Export simulation data as JSON
+- Responsive design with clean, modern interface
+
+Optional arguments:
+```bash
+python ks_web_gui.py --port 8888         # Use different port
+python ks_web_gui.py --debug             # Enable debug mode
+python ks_web_gui.py --host 0.0.0.0      # Allow external network access (default: 127.0.0.1)
+```
+
+### Legacy Desktop GUI (tkinter)
+
+**Note:** The tkinter-based GUI (`ks_gui.py`) may have compatibility issues on some systems. Use the web-based GUI instead.
+
+```bash
+python ks_gui.py  # Legacy tkinter interface (may not work on all systems)
+```
 
 ### Command-Line Interface
 
@@ -97,10 +116,18 @@ python plotting.py --no-animation --steps 5000 --save-data
 
 ### User Interfaces
 
-- **ks_gui.py**: Interactive graphical interface (tkinter)
+- **ks_web_gui.py**: Interactive web-based GUI (Dash/Plotly) **[Recommended]**
+  - Browser-based interface, works on any platform
+  - Real-time visualization with interactive Plotly charts
+  - Parameter controls and preset configurations
+  - Data export as JSON
+  - No tkinter dependencies required
+
+- **ks_gui.py**: Interactive desktop GUI (tkinter) **[Legacy]**
   - Real-time visualization
   - Parameter controls
   - Data export
+  - **Note:** May have compatibility issues on some systems
 
 - **plotting.py**: Command-line interface
   - Flexible command-line arguments
