@@ -229,8 +229,12 @@ def plot_results(results, model):
     
     # Power spectrum
     ax3 = fig.add_subplot(2, 2, 3)
-    k = model.wavenums[:-1]
-    spec = results['spectrum'][:-1]
+    k = model.wavenums
+    spec = results['spectrum']
+    # Ensure matching lengths
+    min_len = min(len(k), len(spec))
+    k = k[:min_len]
+    spec = spec[:min_len]
     spec_norm = spec / np.max(spec)
     ax3.semilogy(k, spec_norm, 'r-', linewidth=2)
     ax3.set_xlabel('Wavenumber k', fontsize=12)
@@ -303,7 +307,12 @@ def main():
         results['x'] = simulator.model.xx
         
         # Calculate average spectrum
-        results['spectrum'] = np.mean(results['spectrum'], axis=0)
+        if len(results['spectrum']) > 0:
+            results['spectrum'] = np.mean(results['spectrum'], axis=0)
+        else:
+            # Compute current spectrum if not recorded
+            k, spec = simulator.model.get_spectrum()
+            results['spectrum'] = spec
         
         print("Simulation complete!")
         
