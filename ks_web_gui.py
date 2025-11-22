@@ -50,11 +50,16 @@ class KSWebGUI:
         # Data storage
         self.energy_history = []
         self.time_history = []
-        self.current_step = 0
         
         # Setup layout and callbacks
         self._create_layout()
         self._setup_callbacks()
+    
+    def _reset_simulation_state(self):
+        """Reset simulation state and data storage."""
+        self.simulator = None
+        self.energy_history = []
+        self.time_history = []
     
     def _create_layout(self):
         """Create the web page layout."""
@@ -254,7 +259,6 @@ class KSWebGUI:
                     self.simulator.run_transient()
                     self.energy_history = []
                     self.time_history = []
-                    self.current_step = 0
                     
                     return {'running': True, 'initialized': True}, False
                 except Exception as e:
@@ -266,19 +270,11 @@ class KSWebGUI:
                 return {'running': False, 'initialized': state.get('initialized', False)}, True
                 
             elif button_id == 'reset-btn':
-                self.simulator = None
-                self.energy_history = []
-                self.time_history = []
-                self.current_step = 0
+                self._reset_simulation_state()
                 return {'running': False, 'initialized': False}, True
             
             return state, not state.get('running', False)
         
-        # Note: allow_duplicate=True is necessary here because info-text is updated
-        # by both the preset callback and this update_plots callback. This is intentional
-        # as they serve different purposes: preset updates provide config info,
-        # while this updates real-time simulation status. Without allow_duplicate,
-        # Dash would raise an error preventing multiple callbacks from targeting the same output.
         @self.app.callback(
             [Output('solution-plot', 'figure'),
              Output('energy-plot', 'figure'),
@@ -288,7 +284,13 @@ class KSWebGUI:
             prevent_initial_call=True
         )
         def update_plots(n_intervals, state):
-            """Update plots with simulation data."""
+            """
+            Update plots with simulation data.
+            
+            Note: allow_duplicate=True is necessary because info-text is updated by both
+            the preset callback and this callback. Without it, Dash would raise an error
+            preventing multiple callbacks from targeting the same output component.
+            """
             if not state.get('running', False) or self.simulator is None:
                 # Return empty figures when not running
                 empty_fig = go.Figure()
@@ -298,7 +300,6 @@ class KSWebGUI:
             try:
                 # Step the simulation
                 self.simulator.model.step()
-                self.current_step += 1
                 
                 # Get current state
                 current_state = self.simulator.get_current_state()
