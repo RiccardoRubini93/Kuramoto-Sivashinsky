@@ -482,15 +482,13 @@ class KSWebGUI:
                         spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                         
                         # Store spectrum for time averaging (deque handles max length automatically)
-                        # Only store if we have a consistent array size or if history is empty
-                        if len(self.spectrum_history) == 0:
-                            self.spectrum_history.append(spec_nonzero.copy())
-                        elif len(self.spectrum_history[0]) > 0 and len(spec_nonzero) == len(self.spectrum_history[0]):
-                            self.spectrum_history.append(spec_nonzero.copy())
-                        else:
+                        # Check for consistent array size or reset if size changed
+                        if len(self.spectrum_history) > 0 and len(spec_nonzero) != len(self.spectrum_history[0]):
                             # If size changed (e.g., simulation reset), clear history and start fresh
                             self.spectrum_history.clear()
-                            self.spectrum_history.append(spec_nonzero.copy())
+                        
+                        # Append current spectrum
+                        self.spectrum_history.append(spec_nonzero.copy())
                         
                         # Calculate time-averaged spectrum with shape validation
                         try:
@@ -519,7 +517,7 @@ class KSWebGUI:
                         # Calculate x-axis range safely with robust validation
                         # Ensure positive values and handle edge cases
                         wavelength_min = max(float(wavelength.min()), 1e-10)
-                        wavelength_max = max(float(wavelength.max()), 1e-9)  # Ensure minimum reasonable range
+                        wavelength_max = max(float(wavelength.max()), wavelength_min)
                         
                         # Ensure we have a reasonable range (at least 10x)
                         if wavelength_max < wavelength_min * 10:
