@@ -303,40 +303,55 @@ class KSGUI:
         
         # Update spectral density plot (bottom left)
         self.ax3.clear()
-        # Get power spectrum
-        k, spec = self.simulator.model.get_spectrum()
-        # Convert wavenumber to wavelength: λ = 2π/k (avoiding k=0)
-        k_nonzero = k[k > 0]
-        spec_nonzero = spec[k > 0]
-        wavelength = 2 * np.pi / k_nonzero
-        
-        self.ax3.semilogy(wavelength, spec_nonzero, 'g-', linewidth=2)
-        self.ax3.set_xlabel('Wavelength λ')
-        self.ax3.set_ylabel('Spectral Density')
-        self.ax3.set_title('Power Spectrum vs Wavelength')
-        self.ax3.grid(True, alpha=0.3)
-        # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
-        self.ax3.invert_xaxis()
+        try:
+            # Get power spectrum
+            k, spec = self.simulator.model.get_spectrum()
+            # Convert wavenumber to wavelength: λ = 2π/k (avoiding k=0)
+            mask = k > 0
+            k_nonzero = k[mask]
+            spec_nonzero = spec[mask]
+            
+            if len(k_nonzero) > 0:
+                wavelength = 2 * np.pi / k_nonzero
+                
+                self.ax3.semilogy(wavelength, spec_nonzero, 'g-', linewidth=2)
+                self.ax3.set_xlabel('Wavelength λ')
+                self.ax3.set_ylabel('Spectral Density')
+                self.ax3.set_title('Power Spectrum vs Wavelength')
+                self.ax3.grid(True, alpha=0.3)
+                # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
+                self.ax3.invert_xaxis()
+        except Exception as e:
+            # If spectrum computation fails, show error message
+            self.ax3.text(0.5, 0.5, f'Error computing spectrum:\n{str(e)}', 
+                         ha='center', va='center', transform=self.ax3.transAxes)
         
         # Update spacetime diagram (bottom right)
         self.ax4.clear()
         if len(self.spacetime_data) > 1:
-            spacetime_array = np.array(self.spacetime_data)
-            # Create time axis for the stored frames
-            time_start = state['t'] - len(self.spacetime_data) * self.simulator.model.dt
-            time_end = state['t']
-            
-            im = self.ax4.imshow(
-                spacetime_array, 
-                aspect='auto',
-                extent=[state['x'][0], state['x'][-1], time_start, time_end],
-                origin='lower',
-                cmap='RdBu_r',
-                vmin=-5, vmax=5
-            )
-            self.ax4.set_xlabel('x')
-            self.ax4.set_ylabel('Time')
-            self.ax4.set_title('Spacetime Evolution u(x,t)')
+            try:
+                spacetime_array = np.array(self.spacetime_data)
+                # Create time axis for the stored frames
+                # Use robust time calculation based on frame count and dt
+                dt = self.simulator.model.dt
+                time_start = state['t'] - len(self.spacetime_data) * dt
+                time_end = state['t']
+                
+                im = self.ax4.imshow(
+                    spacetime_array, 
+                    aspect='auto',
+                    extent=[state['x'][0], state['x'][-1], time_start, time_end],
+                    origin='lower',
+                    cmap='RdBu_r',
+                    vmin=-5, vmax=5
+                )
+                self.ax4.set_xlabel('x')
+                self.ax4.set_ylabel('Time')
+                self.ax4.set_title('Spacetime Evolution u(x,t)')
+            except Exception as e:
+                # If spacetime plot fails, show error message
+                self.ax4.text(0.5, 0.5, f'Error creating spacetime plot:\n{str(e)}', 
+                             ha='center', va='center', transform=self.ax4.transAxes)
         
         # Update info
         info_str = f"Time: {state['t']:.2f}\n"
