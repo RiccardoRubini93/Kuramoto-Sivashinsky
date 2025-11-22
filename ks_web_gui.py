@@ -11,8 +11,10 @@ from KS import KS
 from config import Config
 from simulator import KSSimulator
 import json
-import base64
-import io
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class KSWebGUI:
@@ -258,7 +260,8 @@ class KSWebGUI:
                     
                     return {'running': True, 'initialized': True}, False
                 except Exception as e:
-                    print(f"Error starting simulation: {e}")
+                    error_msg = f"Error starting simulation: {e}"
+                    logging.error(error_msg)
                     return state, True
                     
             elif button_id == 'stop-btn':
@@ -273,6 +276,10 @@ class KSWebGUI:
             
             return state, not state.get('running', False)
         
+        # Note: allow_duplicate=True is necessary here because info-text is updated
+        # by both the preset callback and this update_plots callback. This is intentional
+        # as they serve different purposes: preset updates provide config info,
+        # while this updates real-time simulation status.
         @self.app.callback(
             [Output('solution-plot', 'figure'),
              Output('energy-plot', 'figure'),
@@ -352,10 +359,11 @@ class KSWebGUI:
                 return solution_fig, energy_fig, info
                 
             except Exception as e:
-                print(f"Error updating plots: {e}")
+                error_msg = f"Error updating plots: {e}"
+                logging.error(error_msg)
                 empty_fig = go.Figure()
                 empty_fig.update_layout(template='plotly_white')
-                return empty_fig, empty_fig, f"Error: {str(e)}"
+                return empty_fig, empty_fig, error_msg
         
         @self.app.callback(
             Output('download-data', 'data'),
@@ -387,7 +395,8 @@ class KSWebGUI:
                 
                 return dict(content=json_str, filename="ks_simulation_data.json")
             except Exception as e:
-                print(f"Error saving data: {e}")
+                error_msg = f"Error saving data: {e}"
+                logging.error(error_msg)
                 return None
         
         @self.app.callback(
@@ -419,7 +428,8 @@ class KSWebGUI:
                 
                 return dict(content=json_str, filename="ks_config.json")
             except Exception as e:
-                print(f"Error saving config: {e}")
+                error_msg = f"Error saving config: {e}"
+                logging.error(error_msg)
                 return None
     
     def run(self):
