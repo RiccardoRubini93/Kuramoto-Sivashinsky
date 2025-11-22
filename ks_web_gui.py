@@ -28,8 +28,8 @@ class KSWebGUI:
     DEFAULT_PORT = 8050
     
     # Spectrum plot configuration (log10 scale exponents)
-    SPECTRUM_Y_LOG_MIN = -8  # Minimum y-axis value: 10^-8
-    SPECTRUM_Y_LOG_MAX = 2   # Maximum y-axis value: 10^2
+    SPECTRUM_Y_LOG_MIN = -12  # Minimum y-axis value: 10^-12 (increased range for better visibility)
+    SPECTRUM_Y_LOG_MAX = 4   # Maximum y-axis value: 10^4 (increased range for better visibility)
     SPECTRUM_WAVELENGTH_MIN = 1e-10  # Minimum wavelength value for log scale
     SPECTRUM_DENSITY_MIN = 1e-10  # Minimum spectral density value
     SPECTRUM_MIN_RANGE_FACTOR = 1.1  # Minimum range factor (10% increase)
@@ -611,13 +611,15 @@ class KSWebGUI:
                                     center=dict(x=0, y=0.2, z=0),
                                     up=dict(x=0, y=0, z=1)
                                 ),
-                                aspectmode='auto'  # Use auto aspect mode to maximize space usage
+                                aspectmode='manual',  # Use manual aspect mode for better width control
+                                aspectratio=dict(x=2.0, y=1.5, z=0.5)  # Make plot wider (x=2.0 increases width)
                             ),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
                             font=dict(color='#e0e0e0'),
                             hovermode='closest',
+                            dragmode='orbit',  # Enable orbit dragmode for mouse rotation
                             margin=dict(l=0, r=0, t=30, b=0)  # Minimize margins to maximize plot area
                         )
                     except Exception as e:
@@ -634,12 +636,15 @@ class KSWebGUI:
                             scene=dict(
                                 xaxis=dict(title='x', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
                                 yaxis=dict(title='Time', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
-                                zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True)
+                                zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                                aspectmode='manual',
+                                aspectratio=dict(x=2.0, y=1.5, z=0.5)
                             ),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
                             font=dict(color='#e0e0e0'),
+                            dragmode='orbit',
                             margin=dict(l=0, r=0, t=30, b=0)
                         )
                 else:
@@ -655,12 +660,15 @@ class KSWebGUI:
                         scene=dict(
                             xaxis=dict(title='x', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
                             yaxis=dict(title='Time', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
-                            zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True)
+                            zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                            aspectmode='manual',
+                            aspectratio=dict(x=2.0, y=1.5, z=0.5)
                         ),
                         template='plotly_dark',
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(20, 25, 45, 0.3)',
                         font=dict(color='#e0e0e0'),
+                        dragmode='orbit',
                         margin=dict(l=0, r=0, t=30, b=0)
                     )
                 

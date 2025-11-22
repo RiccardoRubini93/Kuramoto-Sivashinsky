@@ -240,7 +240,7 @@ def plot_results(results, model):
     ax3.set_xlabel('Wavenumber k', fontsize=12)
     ax3.set_ylabel('Normalized Power', fontsize=12)
     ax3.set_title('Time-averaged Power Spectrum', fontsize=14)
-    ax3.set_ylim([1e-4, 2])
+    ax3.set_ylim([1e-12, 1e4])  # Increased range for better visibility
     ax3.grid(True, alpha=0.3)
     
     # Final solution
