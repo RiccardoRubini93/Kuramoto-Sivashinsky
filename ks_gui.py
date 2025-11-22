@@ -140,35 +140,25 @@ class KSGUI:
         # Visualization Panel (Right)
         self.plot_frame = ttk.Frame(self.root)
         
-        # Create matplotlib figure with 4 subplots (2x2 grid)
+        # Create matplotlib figure with 2 subplots (2x1 grid - vertical layout)
         self.fig = Figure(figsize=(10, 8), dpi=100)
         
-        # Main solution plot (top left)
-        self.ax1 = self.fig.add_subplot(2, 2, 1)
-        self.ax1.set_xlabel('x')
-        self.ax1.set_ylabel('u(x,t)')
-        self.ax1.set_title('Kuramoto-Sivashinsky Solution')
+        # Spectral density vs wavelength (top)
+        self.ax1 = self.fig.add_subplot(2, 1, 1)
+        self.ax1.set_xlabel('Wavelength λ')
+        self.ax1.set_ylabel('Spectral Density')
+        self.ax1.set_title('Power Spectrum vs Wavelength')
         self.ax1.grid(True, alpha=0.3)
         
-        # Energy plot (top right)
-        self.ax2 = self.fig.add_subplot(2, 2, 2)
-        self.ax2.set_xlabel('Time')
-        self.ax2.set_ylabel('Energy')
-        self.ax2.set_title('System Energy')
-        self.ax2.grid(True, alpha=0.3)
+        # Spacetime diagram (bottom)
+        self.ax2 = self.fig.add_subplot(2, 1, 2)
+        self.ax2.set_xlabel('x')
+        self.ax2.set_ylabel('Time')
+        self.ax2.set_title('Spacetime Evolution u(x,t)')
         
-        # Spectral density vs wavelength (bottom left)
-        self.ax3 = self.fig.add_subplot(2, 2, 3)
-        self.ax3.set_xlabel('Wavelength λ')
-        self.ax3.set_ylabel('Spectral Density')
-        self.ax3.set_title('Power Spectrum vs Wavelength')
-        self.ax3.grid(True, alpha=0.3)
-        
-        # Spacetime diagram (bottom right)
-        self.ax4 = self.fig.add_subplot(2, 2, 4)
-        self.ax4.set_xlabel('x')
-        self.ax4.set_ylabel('Time')
-        self.ax4.set_title('Spacetime Evolution u(x,t)')
+        # Storage for moving average of spectrum
+        self.spectrum_history = []
+        self.max_spectrum_frames = 10  # Number of frames to average
         
         self.fig.tight_layout()
         
@@ -243,6 +233,7 @@ class KSGUI:
             self.energy_history = []
             self.time_history = []
             self.spacetime_data = []
+            self.spectrum_history = []
             
             self.update_info("Simulation running...")
             
@@ -270,11 +261,11 @@ class KSGUI:
         # Get current state
         state = self.simulator.get_current_state()
         
-        # Update energy history
+        # Update energy history (kept for info display)
         self.energy_history.append(state['energy'])
         self.time_history.append(state['t'])
         
-        # Keep only last 500 points for energy plot
+        # Keep only last 500 points for energy history
         if len(self.energy_history) > 500:
             self.energy_history.pop(0)
             self.time_history.pop(0)
@@ -284,25 +275,8 @@ class KSGUI:
         if len(self.spacetime_data) > self.max_spacetime_frames:
             self.spacetime_data.pop(0)
         
-        # Update solution plot (top left)
+        # Update spectral density plot with moving average (top)
         self.ax1.clear()
-        self.ax1.plot(state['x'], state['u'], 'b-', linewidth=2)
-        self.ax1.set_xlabel('x')
-        self.ax1.set_ylabel('u(x,t)')
-        self.ax1.set_title(f'Solution at t = {state["t"]:.2f}')
-        self.ax1.grid(True, alpha=0.3)
-        self.ax1.set_ylim([-5, 5])
-        
-        # Update energy plot (top right)
-        self.ax2.clear()
-        self.ax2.plot(self.time_history, self.energy_history, 'r-', linewidth=1.5)
-        self.ax2.set_xlabel('Time')
-        self.ax2.set_ylabel('Energy')
-        self.ax2.set_title('System Energy')
-        self.ax2.grid(True, alpha=0.3)
-        
-        # Update spectral density plot (bottom left)
-        self.ax3.clear()
         try:
             # Get power spectrum
             k, spec = self.simulator.model.get_spectrum()
@@ -317,20 +291,31 @@ class KSGUI:
                 # Ensure spectral density is positive (handle numerical precision)
                 spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                 
-                self.ax3.loglog(wavelength, spec_nonzero, 'g-', linewidth=2)
-                self.ax3.set_xlabel('Wavelength λ (log scale)')
-                self.ax3.set_ylabel('Spectral Density (log scale)')
-                self.ax3.set_title('Power Spectrum vs Wavelength')
-                self.ax3.grid(True, alpha=0.3)
+                # Store spectrum for moving average
+                self.spectrum_history.append(spec_nonzero.copy())
+                if len(self.spectrum_history) > self.max_spectrum_frames:
+                    self.spectrum_history.pop(0)
+                
+                # Calculate moving average
+                spec_avg = np.mean(self.spectrum_history, axis=0)
+                
+                # Plot both the current and smoothed spectrum
+                self.ax1.loglog(wavelength, spec_nonzero, 'g-', linewidth=1, alpha=0.3, label='Current')
+                self.ax1.loglog(wavelength, spec_avg, 'b-', linewidth=2, label='Moving Average')
+                self.ax1.set_xlabel('Wavelength λ (log scale)')
+                self.ax1.set_ylabel('Spectral Density (log scale)')
+                self.ax1.set_title('Power Spectrum vs Wavelength')
+                self.ax1.legend(loc='best')
+                self.ax1.grid(True, alpha=0.3)
                 # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
-                self.ax3.invert_xaxis()
+                self.ax1.invert_xaxis()
         except Exception as e:
             # If spectrum computation fails, show error message
-            self.ax3.text(0.5, 0.5, f'Error computing spectrum:\n{str(e)}', 
-                         ha='center', va='center', transform=self.ax3.transAxes)
+            self.ax1.text(0.5, 0.5, f'Error computing spectrum:\n{str(e)}', 
+                         ha='center', va='center', transform=self.ax1.transAxes)
         
-        # Update spacetime diagram (bottom right)
-        self.ax4.clear()
+        # Update spacetime diagram (bottom)
+        self.ax2.clear()
         if len(self.spacetime_data) > 1:
             try:
                 spacetime_array = np.array(self.spacetime_data)
@@ -340,7 +325,7 @@ class KSGUI:
                 time_start = state['t'] - len(self.spacetime_data) * dt
                 time_end = state['t']
                 
-                im = self.ax4.imshow(
+                im = self.ax2.imshow(
                     spacetime_array, 
                     aspect='auto',
                     extent=[state['x'][0], state['x'][-1], time_start, time_end],
@@ -348,13 +333,13 @@ class KSGUI:
                     cmap='RdBu_r',
                     vmin=-5, vmax=5
                 )
-                self.ax4.set_xlabel('x')
-                self.ax4.set_ylabel('Time')
-                self.ax4.set_title('Spacetime Evolution u(x,t)')
+                self.ax2.set_xlabel('x')
+                self.ax2.set_ylabel('Time')
+                self.ax2.set_title('Spacetime Evolution u(x,t)')
             except Exception as e:
                 # If spacetime plot fails, show error message
-                self.ax4.text(0.5, 0.5, f'Error creating spacetime plot:\n{str(e)}', 
-                             ha='center', va='center', transform=self.ax4.transAxes)
+                self.ax2.text(0.5, 0.5, f'Error creating spacetime plot:\n{str(e)}', 
+                             ha='center', va='center', transform=self.ax2.transAxes)
         
         # Update info
         info_str = f"Time: {state['t']:.2f}\n"
@@ -378,30 +363,19 @@ class KSGUI:
         self.energy_history = []
         self.time_history = []
         self.spacetime_data = []
+        self.spectrum_history = []
         
         # Clear plots
         self.ax1.clear()
-        self.ax1.set_xlabel('x')
-        self.ax1.set_ylabel('u(x,t)')
-        self.ax1.set_title('Kuramoto-Sivashinsky Solution')
+        self.ax1.set_xlabel('Wavelength λ')
+        self.ax1.set_ylabel('Spectral Density')
+        self.ax1.set_title('Power Spectrum vs Wavelength')
         self.ax1.grid(True, alpha=0.3)
         
         self.ax2.clear()
-        self.ax2.set_xlabel('Time')
-        self.ax2.set_ylabel('Energy')
-        self.ax2.set_title('System Energy')
-        self.ax2.grid(True, alpha=0.3)
-        
-        self.ax3.clear()
-        self.ax3.set_xlabel('Wavelength λ')
-        self.ax3.set_ylabel('Spectral Density')
-        self.ax3.set_title('Power Spectrum vs Wavelength')
-        self.ax3.grid(True, alpha=0.3)
-        
-        self.ax4.clear()
-        self.ax4.set_xlabel('x')
-        self.ax4.set_ylabel('Time')
-        self.ax4.set_title('Spacetime Evolution u(x,t)')
+        self.ax2.set_xlabel('x')
+        self.ax2.set_ylabel('Time')
+        self.ax2.set_title('Spacetime Evolution u(x,t)')
         
         self.canvas.draw()
         self.update_info("Simulation reset.")
