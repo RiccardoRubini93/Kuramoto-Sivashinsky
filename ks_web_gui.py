@@ -7,7 +7,6 @@ import dash
 from dash import dcc, html, Input, Output, State, callback_context
 import plotly.graph_objs as go
 import numpy as np
-from KS import KS
 from config import Config
 from simulator import KSSimulator
 import json
