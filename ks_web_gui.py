@@ -92,7 +92,8 @@ class KSWebGUI:
                     /* Grid container for plots */
                     .plot-grid {
                         display: grid;
-                        grid-template-columns: repeat(2, 1fr);
+                        grid-template-columns: 1fr;
+                        grid-template-rows: repeat(2, 1fr);
                         gap: 20px;
                         padding: 20px;
                     }
@@ -351,12 +352,6 @@ class KSWebGUI:
                 # Right panel - Visualization
                 html.Div([
                     html.Div([
-                        dcc.Graph(id='solution-plot', style={'height': '45vh'}),
-                    ], className='plot-container'),
-                    html.Div([
-                        dcc.Graph(id='energy-plot', style={'height': '45vh'}),
-                    ], className='plot-container'),
-                    html.Div([
                         dcc.Graph(id='spectrum-plot', style={'height': '45vh'}),
                     ], className='plot-container'),
                     html.Div([
@@ -449,9 +444,7 @@ class KSWebGUI:
             return state, not state.get('running', False)
         
         @self.app.callback(
-            [Output('solution-plot', 'figure'),
-             Output('energy-plot', 'figure'),
-             Output('spectrum-plot', 'figure'),
+            [Output('spectrum-plot', 'figure'),
              Output('spacetime-plot', 'figure'),
              Output('info-text', 'children', allow_duplicate=True)],
             [Input('interval-component', 'n_intervals')],
@@ -475,7 +468,7 @@ class KSWebGUI:
                     plot_bgcolor='rgba(20, 25, 45, 0.3)',
                     font=dict(color='#e0e0e0')
                 )
-                return empty_fig, empty_fig, empty_fig, empty_fig, "Simulation not running"
+                return empty_fig, empty_fig, "Simulation not running"
             
             try:
                 # Step the simulation
@@ -484,7 +477,7 @@ class KSWebGUI:
                 # Get current state
                 current_state = self.simulator.get_current_state()
                 
-                # Update energy history
+                # Update energy history (kept for info display)
                 self.energy_history.append(current_state['energy'])
                 self.time_history.append(current_state['t'])
                 
@@ -492,49 +485,6 @@ class KSWebGUI:
                 if len(self.energy_history) > self.HISTORY_BUFFER_SIZE:
                     self.energy_history.pop(0)
                     self.time_history.pop(0)
-                
-                # Create solution plot
-                solution_fig = go.Figure()
-                solution_fig.add_trace(go.Scatter(
-                    x=current_state['x'],
-                    y=current_state['u'],
-                    mode='lines',
-                    line=dict(color='#00ffff', width=2),
-                    name='u(x,t)'
-                ))
-                solution_fig.update_layout(
-                    title=f'Solution at t = {current_state["t"]:.2f}',
-                    xaxis_title='x',
-                    yaxis_title='u(x,t)',
-                    yaxis_range=[-5, 5],
-                    template='plotly_dark',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                    font=dict(color='#e0e0e0'),
-                    hovermode='x',
-                    showlegend=False
-                )
-                
-                # Create energy plot
-                energy_fig = go.Figure()
-                energy_fig.add_trace(go.Scatter(
-                    x=self.time_history,
-                    y=self.energy_history,
-                    mode='lines',
-                    line=dict(color='#ff4466', width=1.5),
-                    name='Energy'
-                ))
-                energy_fig.update_layout(
-                    title='System Energy',
-                    xaxis_title='Time',
-                    yaxis_title='Energy',
-                    template='plotly_dark',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                    font=dict(color='#e0e0e0'),
-                    hovermode='x',
-                    showlegend=False
-                )
                 
                 # Store data for spacetime plot
                 self.spacetime_data.append(current_state['u'].copy())
@@ -691,7 +641,7 @@ class KSWebGUI:
                 info += f"Energy: {current_state['energy']:.4f}\n"
                 info += f"Running..."
                 
-                return solution_fig, energy_fig, spectrum_fig, spacetime_fig, info
+                return spectrum_fig, spacetime_fig, info
                 
             except Exception as e:
                 error_msg = f"Error updating plots: {e}"
@@ -703,7 +653,7 @@ class KSWebGUI:
                     plot_bgcolor='rgba(20, 25, 45, 0.3)',
                     font=dict(color='#e0e0e0')
                 )
-                return empty_fig, empty_fig, empty_fig, empty_fig, error_msg
+                return empty_fig, empty_fig, error_msg
         
         @self.app.callback(
             Output('download-data', 'data'),
