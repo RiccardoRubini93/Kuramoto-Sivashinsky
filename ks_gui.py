@@ -297,10 +297,7 @@ class KSGUI:
                     self.spectrum_history.pop(0)
                 
                 # Calculate moving average
-                if len(self.spectrum_history) > 0:
-                    spec_avg = np.mean(self.spectrum_history, axis=0)
-                else:
-                    spec_avg = spec_nonzero
+                spec_avg = np.mean(self.spectrum_history, axis=0)
                 
                 # Plot both the current and smoothed spectrum
                 self.ax1.loglog(wavelength, spec_nonzero, 'g-', linewidth=1, alpha=0.3, label='Current')
