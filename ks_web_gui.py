@@ -95,7 +95,6 @@ class KSWebGUI:
                         grid-template-columns: repeat(2, 1fr);
                         gap: 20px;
                         padding: 20px;
-                        perspective: 1000px;
                     }
                     
                     /* Individual plot containers with hover effect */
@@ -105,7 +104,10 @@ class KSWebGUI:
                         border: 1px solid rgba(0, 255, 255, 0.3);
                         border-radius: 12px;
                         padding: 15px;
-                        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                                    border-color 0.4s ease, 
+                                    box-shadow 0.4s ease, 
+                                    z-index 0.4s ease;
                         box-shadow: 0 4px 20px rgba(0, 255, 255, 0.1);
                         backdrop-filter: blur(10px);
                         overflow: hidden;
@@ -349,27 +351,18 @@ class KSWebGUI:
                 # Right panel - Visualization
                 html.Div([
                     html.Div([
-                        html.Div([
-                            dcc.Graph(id='solution-plot', style={'height': '45vh'}),
-                        ], className='plot-container'),
-                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        dcc.Graph(id='solution-plot', style={'height': '45vh'}),
+                    ], className='plot-container'),
                     html.Div([
-                        html.Div([
-                            dcc.Graph(id='energy-plot', style={'height': '45vh'}),
-                        ], className='plot-container'),
-                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        dcc.Graph(id='energy-plot', style={'height': '45vh'}),
+                    ], className='plot-container'),
                     html.Div([
-                        html.Div([
-                            dcc.Graph(id='spectrum-plot', style={'height': '45vh'}),
-                        ], className='plot-container'),
-                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        dcc.Graph(id='spectrum-plot', style={'height': '45vh'}),
+                    ], className='plot-container'),
                     html.Div([
-                        html.Div([
-                            dcc.Graph(id='spacetime-plot', style={'height': '45vh'}),
-                        ], className='plot-container'),
-                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-                ], style={'width': '75%', 'display': 'inline-block', 'verticalAlign': 'top'},
-                   className='plot-grid'),
+                        dcc.Graph(id='spacetime-plot', style={'height': '45vh'}),
+                    ], className='plot-container'),
+                ], style={'width': '75%'}, className='plot-grid'),
                 
             ], style={'display': 'flex'}),
             
