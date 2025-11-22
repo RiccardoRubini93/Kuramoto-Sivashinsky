@@ -396,8 +396,9 @@ class KSWebGUI:
                         ))
                         spectrum_fig.update_layout(
                             title='Power Spectrum vs Wavelength',
-                            xaxis_title='Wavelength λ',
-                            yaxis_title='Spectral Density',
+                            xaxis_title='Wavelength λ (log scale)',
+                            yaxis_title='Spectral Density (log scale)',
+                            xaxis_type='log',  # Log scale for x-axis
                             yaxis_type='log',  # Log scale for y-axis
                             template='plotly_white',
                             hovermode='x',
