@@ -23,12 +23,15 @@ class KSWebGUI:
     # Configuration constants
     UPDATE_INTERVAL_MS = 100  # Update frequency in milliseconds
     HISTORY_BUFFER_SIZE = 500  # Maximum number of points to keep in energy history
+    SPACETIME_BUFFER_SIZE = 200  # Maximum spacetime frames to keep
+    SPECTRUM_AVERAGE_FRAMES = 10  # Number of spectrum frames to average
     DEFAULT_PORT = 8050
     
     # Spectrum plot configuration (log10 scale exponents)
     SPECTRUM_Y_LOG_MIN = -8  # Minimum y-axis value: 10^-8
     SPECTRUM_Y_LOG_MAX = 2   # Maximum y-axis value: 10^2
     SPECTRUM_WAVELENGTH_MIN = 1e-10  # Minimum wavelength value for log scale
+    SPECTRUM_DENSITY_MIN = 1e-10  # Minimum spectral density value
     SPECTRUM_MIN_RANGE_FACTOR = 1.1  # Minimum range factor (10% increase)
     SPECTRUM_X_FALLBACK_MIN = -2  # Fallback x-axis range minimum
     SPECTRUM_X_FALLBACK_MAX = 2   # Fallback x-axis range maximum
@@ -59,10 +62,10 @@ class KSWebGUI:
         # Data storage using deque for efficient rolling buffers
         self.energy_history = deque(maxlen=self.HISTORY_BUFFER_SIZE)
         self.time_history = deque(maxlen=self.HISTORY_BUFFER_SIZE)
-        self.spacetime_data = deque(maxlen=200)  # Keep last 200 frames
+        self.spacetime_data = deque(maxlen=self.SPACETIME_BUFFER_SIZE)
         
         # Spectrum history for time averaging using deque
-        self.spectrum_history = deque(maxlen=10)  # Average over last 10 frames
+        self.spectrum_history = deque(maxlen=self.SPECTRUM_AVERAGE_FRAMES)
         
         # Setup layout and callbacks
         self._create_layout()
@@ -483,7 +486,7 @@ class KSWebGUI:
                         wavelength = np.maximum(wavelength, self.SPECTRUM_WAVELENGTH_MIN)
                         
                         # Ensure spectral density is positive (handle numerical precision)
-                        spec_nonzero = np.maximum(spec_nonzero, self.SPECTRUM_WAVELENGTH_MIN)
+                        spec_nonzero = np.maximum(spec_nonzero, self.SPECTRUM_DENSITY_MIN)
                         
                         # Store spectrum for time averaging (deque handles max length automatically)
                         # Check for consistent array size or reset if size changed
