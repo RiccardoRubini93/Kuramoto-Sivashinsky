@@ -477,7 +477,7 @@ class KSWebGUI:
                 # Get current state
                 current_state = self.simulator.get_current_state()
                 
-                # Update energy history (kept for info display)
+                # Update energy history (used in status panel display)
                 self.energy_history.append(current_state['energy'])
                 self.time_history.append(current_state['t'])
                 
