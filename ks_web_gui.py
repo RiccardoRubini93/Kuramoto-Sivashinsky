@@ -24,6 +24,10 @@ class KSWebGUI:
     HISTORY_BUFFER_SIZE = 500  # Maximum number of points to keep in energy history
     DEFAULT_PORT = 8050
     
+    # Spectrum plot configuration
+    SPECTRUM_Y_RANGE_MIN = -8  # Minimum y-axis value in log scale
+    SPECTRUM_Y_RANGE_MAX = 2   # Maximum y-axis value in log scale
+    
     def __init__(self, port=DEFAULT_PORT, debug=False, host='127.0.0.1'):
         """
         Initialize the web GUI.
@@ -479,6 +483,9 @@ class KSWebGUI:
                     if len(k_nonzero) > 0:
                         wavelength = 2 * np.pi / k_nonzero
                         
+                        # Ensure wavelength values are positive and valid for log scale
+                        wavelength = np.maximum(wavelength, 1e-10)
+                        
                         # Ensure spectral density is positive (handle numerical precision)
                         spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                         
@@ -498,14 +505,19 @@ class KSWebGUI:
                             line=dict(color='#00ff88', width=2),
                             name='Time-Averaged Spectral Density'
                         ))
+                        
+                        # Calculate x-axis range safely
+                        wavelength_min = max(wavelength.min(), 1e-10)
+                        wavelength_max = max(wavelength.max(), wavelength_min * 10)
+                        
                         spectrum_fig.update_layout(
                             title='Power Spectrum vs Wavelength (Time-Averaged)',
                             xaxis_title='Wavelength λ (log scale)',
                             yaxis_title='Spectral Density (log scale)',
                             xaxis_type='log',  # Log scale for x-axis
                             yaxis_type='log',  # Log scale for y-axis
-                            xaxis=dict(range=[np.log10(wavelength.min()), np.log10(wavelength.max())], fixedrange=True),
-                            yaxis=dict(range=[-8, 2], fixedrange=True),  # Fixed y-axis range
+                            xaxis=dict(range=[np.log10(wavelength_min), np.log10(wavelength_max)], fixedrange=True),
+                            yaxis=dict(range=[self.SPECTRUM_Y_RANGE_MIN, self.SPECTRUM_Y_RANGE_MAX], fixedrange=True),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
