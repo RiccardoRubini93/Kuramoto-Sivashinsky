@@ -7,6 +7,7 @@ import dash
 from dash import dcc, html, Input, Output, State, callback_context
 import plotly.graph_objs as go
 import numpy as np
+from collections import deque
 from config import Config
 from simulator import KSSimulator
 import json
@@ -24,9 +25,9 @@ class KSWebGUI:
     HISTORY_BUFFER_SIZE = 500  # Maximum number of points to keep in energy history
     DEFAULT_PORT = 8050
     
-    # Spectrum plot configuration
-    SPECTRUM_Y_RANGE_MIN = -8  # Minimum y-axis value in log scale
-    SPECTRUM_Y_RANGE_MAX = 2   # Maximum y-axis value in log scale
+    # Spectrum plot configuration (log10 scale exponents)
+    SPECTRUM_Y_LOG_MIN = -8  # Minimum y-axis value: 10^-8
+    SPECTRUM_Y_LOG_MAX = 2   # Maximum y-axis value: 10^2
     
     def __init__(self, port=DEFAULT_PORT, debug=False, host='127.0.0.1'):
         """
@@ -51,15 +52,13 @@ class KSWebGUI:
         self.simulator = None
         self.is_running = False
         
-        # Data storage
+        # Data storage using deque for efficient rolling buffers
         self.energy_history = []
         self.time_history = []
-        self.spacetime_data = []
-        self.max_spacetime_frames = 200  # Keep last 200 frames
+        self.spacetime_data = deque(maxlen=200)  # Keep last 200 frames
         
-        # Spectrum history for time averaging
-        self.spectrum_history = []
-        self.max_spectrum_frames = 10  # Number of frames to average
+        # Spectrum history for time averaging using deque
+        self.spectrum_history = deque(maxlen=10)  # Average over last 10 frames
         
         # Setup layout and callbacks
         self._create_layout()
@@ -70,8 +69,8 @@ class KSWebGUI:
         self.simulator = None
         self.energy_history = []
         self.time_history = []
-        self.spacetime_data = []
-        self.spectrum_history = []
+        self.spacetime_data.clear()
+        self.spectrum_history.clear()
     
     def _create_layout(self):
         """Create the web page layout."""
@@ -403,8 +402,8 @@ class KSWebGUI:
                     self.simulator.run_transient()
                     self.energy_history = []
                     self.time_history = []
-                    self.spacetime_data = []
-                    self.spectrum_history = []
+                    self.spacetime_data.clear()
+                    self.spectrum_history.clear()
                     
                     return {'running': True, 'initialized': True}, False
                 except Exception as e:
@@ -465,10 +464,8 @@ class KSWebGUI:
                     self.energy_history.pop(0)
                     self.time_history.pop(0)
                 
-                # Store data for spacetime plot
+                # Store data for spacetime plot (deque handles max length automatically)
                 self.spacetime_data.append(current_state['u'].copy())
-                if len(self.spacetime_data) > self.max_spacetime_frames:
-                    self.spacetime_data.pop(0)
                 
                 # Create spectral density plot (log scale) with time averaging
                 spectrum_fig = go.Figure()
@@ -489,10 +486,8 @@ class KSWebGUI:
                         # Ensure spectral density is positive (handle numerical precision)
                         spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                         
-                        # Store spectrum for time averaging
+                        # Store spectrum for time averaging (deque handles max length automatically)
                         self.spectrum_history.append(spec_nonzero.copy())
-                        if len(self.spectrum_history) > self.max_spectrum_frames:
-                            self.spectrum_history.pop(0)
                         
                         # Calculate time-averaged spectrum
                         spec_avg = np.mean(self.spectrum_history, axis=0)
@@ -506,9 +501,17 @@ class KSWebGUI:
                             name='Time-Averaged Spectral Density'
                         ))
                         
-                        # Calculate x-axis range safely
-                        wavelength_min = max(wavelength.min(), 1e-10)
-                        wavelength_max = max(wavelength.max(), wavelength_min * 10)
+                        # Calculate x-axis range safely with robust validation
+                        # Ensure positive values and handle edge cases
+                        wavelength_min = max(float(wavelength.min()), 1e-10)
+                        wavelength_max = max(float(wavelength.max()), wavelength_min * 10)
+                        
+                        # Validate that log10 will succeed
+                        if wavelength_min > 0 and wavelength_max > 0:
+                            x_range = [np.log10(wavelength_min), np.log10(wavelength_max)]
+                        else:
+                            # Fallback to safe default range
+                            x_range = [-2, 2]
                         
                         spectrum_fig.update_layout(
                             title='Power Spectrum vs Wavelength (Time-Averaged)',
@@ -516,8 +519,8 @@ class KSWebGUI:
                             yaxis_title='Spectral Density (log scale)',
                             xaxis_type='log',  # Log scale for x-axis
                             yaxis_type='log',  # Log scale for y-axis
-                            xaxis=dict(range=[np.log10(wavelength_min), np.log10(wavelength_max)], fixedrange=True),
-                            yaxis=dict(range=[self.SPECTRUM_Y_RANGE_MIN, self.SPECTRUM_Y_RANGE_MAX], fixedrange=True),
+                            xaxis=dict(range=x_range, fixedrange=True),
+                            yaxis=dict(range=[self.SPECTRUM_Y_LOG_MIN, self.SPECTRUM_Y_LOG_MAX], fixedrange=True),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
