@@ -135,7 +135,7 @@ class KSWebGUI:
                     
                     /* Expand effect on hover */
                     .plot-container:hover {
-                        transform: scale(1.05) translateY(-5px);
+                        transform: scale(1.2) translateY(-10px);
                         z-index: 10;
                         border-color: rgba(0, 255, 255, 0.8);
                         box-shadow: 0 15px 50px rgba(0, 255, 255, 0.3);
@@ -596,7 +596,7 @@ class KSWebGUI:
                         font=dict(color='#e0e0e0')
                     )
                 
-                # Create spacetime diagram
+                # Create spacetime diagram - 3D Surface Plot
                 spacetime_fig = go.Figure()
                 if len(self.spacetime_data) > 1:
                     try:
@@ -605,21 +605,38 @@ class KSWebGUI:
                         dt = self.simulator.model.dt
                         time_start = current_state['t'] - len(self.spacetime_data) * dt
                         time_end = current_state['t']
+                        time_axis = np.linspace(time_start, time_end, len(self.spacetime_data))
                         
-                        spacetime_fig.add_trace(go.Heatmap(
+                        # Create 3D surface plot
+                        spacetime_fig.add_trace(go.Surface(
                             z=spacetime_array,
                             x=current_state['x'],
-                            y=np.linspace(time_start, time_end, len(self.spacetime_data)),
+                            y=time_axis,
                             colorscale='RdBu_r',
-                            zmid=0,
-                            zmin=-5,
-                            zmax=5,
-                            colorbar=dict(title='u(x,t)')
+                            cmid=0,
+                            cmin=-5,
+                            cmax=5,
+                            colorbar=dict(title='u(x,t)', len=0.7),
+                            contours=dict(
+                                z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project=dict(z=True))
+                            ),
+                            lighting=dict(ambient=0.4, diffuse=0.8, fresnel=0.2, specular=0.3, roughness=0.5),
+                            lightposition=dict(x=100, y=200, z=0)
                         ))
                         spacetime_fig.update_layout(
-                            title='Spacetime Evolution u(x,t)',
-                            xaxis_title='x',
-                            yaxis_title='Time',
+                            title='Spacetime Evolution u(x,t) - 3D View',
+                            scene=dict(
+                                xaxis=dict(title='x', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                                yaxis=dict(title='Time', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                                zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True, range=[-5, 5]),
+                                camera=dict(
+                                    eye=dict(x=1.5, y=-1.8, z=0.8),  # Camera position for "following" perspective
+                                    center=dict(x=0, y=0.2, z=0),
+                                    up=dict(x=0, y=0, z=1)
+                                ),
+                                aspectmode='manual',
+                                aspectratio=dict(x=1.5, y=2, z=0.6)
+                            ),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
@@ -636,7 +653,12 @@ class KSWebGUI:
                             font=dict(size=12, color='#ff4466')
                         )
                         spacetime_fig.update_layout(
-                            title='Spacetime Evolution u(x,t)',
+                            title='Spacetime Evolution u(x,t) - 3D View',
+                            scene=dict(
+                                xaxis=dict(title='x', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                                yaxis=dict(title='Time', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                                zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True)
+                            ),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
@@ -651,7 +673,12 @@ class KSWebGUI:
                         font=dict(size=12, color='#00ffff')
                     )
                     spacetime_fig.update_layout(
-                        title='Spacetime Evolution u(x,t)',
+                        title='Spacetime Evolution u(x,t) - 3D View',
+                        scene=dict(
+                            xaxis=dict(title='x', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                            yaxis=dict(title='Time', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True),
+                            zaxis=dict(title='u(x,t)', backgroundcolor='rgba(20, 25, 45, 0.3)', gridcolor='rgba(100, 100, 100, 0.3)', showbackground=True)
+                        ),
                         template='plotly_dark',
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(20, 25, 45, 0.3)',
