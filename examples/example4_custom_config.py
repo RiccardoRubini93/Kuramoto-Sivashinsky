@@ -88,12 +88,12 @@ print("\nOutput saved to example4_output.png")
 # Print statistics
 print("\n--- Statistics Comparison ---")
 print(f"Custom Config:")
-print(f"  Domain: [0, {2*np.pi*state1['x'][-1]:.2f}]")
+print(f"  Domain: [0, {2*np.pi*simulator.model.L:.2f}]")
 print(f"  Mean Energy: {np.mean(results['energy']):.2f}")
 print(f"  Energy Std: {np.std(results['energy']):.2f}")
 
 print(f"\nPreset Config:")
-print(f"  Domain: [0, {2*np.pi*state2['x'][-1]:.2f}]")
+print(f"  Domain: [0, {2*np.pi*preset_simulator.model.L:.2f}]")
 print(f"  Mean Energy: {np.mean(preset_results['energy']):.2f}")
 print(f"  Energy Std: {np.std(preset_results['energy']):.2f}")
 

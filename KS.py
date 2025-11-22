@@ -43,9 +43,8 @@ class KS(object):
         self.diffusion = diffusion
         
         # Setup wavenumbers and spectral operators
-        kk = N * np.fft.fftfreq(N)[0:int((N/2)+1)]
-        self.wavenums = kk
-        k = kk.astype(np.float64) / L
+        self.wavenums = N * np.fft.fftfreq(N)[0:int((N/2)+1)]
+        k = self.wavenums.astype(np.float64) / L
         
         # Spectral derivative operator and linear term
         self.ik = 1j * k

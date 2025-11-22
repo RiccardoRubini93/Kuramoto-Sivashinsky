@@ -48,8 +48,8 @@ class KSSimulator:
         self.history = {
             'u': [],
             't': [],
-            'energy': [],
-            'spectrum': []
+            'energy': []
+            # Note: 'spectrum' is added only when record_spectrum=True
         }
         
         self.n_steps = sim_params['n_steps']
@@ -95,9 +95,11 @@ class KSSimulator:
         self.history = {
             'u': [],
             't': [],
-            'energy': [],
-            'spectrum': []
+            'energy': []
         }
+        
+        if record_spectrum:
+            self.history['spectrum'] = []
         
         # Run simulation
         for step in range(n_steps):
@@ -116,7 +118,7 @@ class KSSimulator:
         self.history['u'] = np.array(self.history['u'])
         self.history['t'] = np.array(self.history['t'])
         self.history['energy'] = np.array(self.history['energy'])
-        if record_spectrum:
+        if record_spectrum and 'spectrum' in self.history:
             self.history['spectrum'] = np.array(self.history['spectrum'])
         
         return self.history
@@ -159,7 +161,7 @@ class KSSimulator:
             'diffusion': self.model.diffusion
         }
         
-        if len(self.history['spectrum']) > 0:
+        if 'spectrum' in self.history and len(self.history['spectrum']) > 0:
             data['spectrum_history'] = self.history['spectrum']
             k, _ = self.model.get_spectrum()
             data['wavenumbers'] = k
@@ -197,6 +199,5 @@ class KSSimulator:
         self.history = {
             'u': [],
             't': [],
-            'energy': [],
-            'spectrum': []
+            'energy': []
         }

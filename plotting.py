@@ -264,6 +264,8 @@ def main():
     
     # Override with command-line arguments
     if args.L is not None:
+        # When L is specified, use it as domain length parameter
+        # Set N equal to L for compatibility with original interface
         config.set('simulation', 'L', args.L / (2*np.pi))
         config.set('simulation', 'N', int(args.L))
     
