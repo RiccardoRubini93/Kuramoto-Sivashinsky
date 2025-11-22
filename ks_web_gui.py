@@ -483,15 +483,29 @@ class KSWebGUI:
                         
                         # Store spectrum for time averaging (deque handles max length automatically)
                         # Only store if we have a consistent array size or if history is empty
-                        if len(self.spectrum_history) == 0 or len(spec_nonzero) == len(self.spectrum_history[0]):
+                        if len(self.spectrum_history) == 0:
+                            self.spectrum_history.append(spec_nonzero.copy())
+                        elif len(self.spectrum_history[0]) > 0 and len(spec_nonzero) == len(self.spectrum_history[0]):
                             self.spectrum_history.append(spec_nonzero.copy())
                         else:
                             # If size changed (e.g., simulation reset), clear history and start fresh
                             self.spectrum_history.clear()
                             self.spectrum_history.append(spec_nonzero.copy())
                         
-                        # Calculate time-averaged spectrum
-                        spec_avg = np.mean(self.spectrum_history, axis=0)
+                        # Calculate time-averaged spectrum with shape validation
+                        try:
+                            # Verify all arrays have the same shape
+                            shapes = [arr.shape for arr in self.spectrum_history]
+                            if len(set(shapes)) == 1:  # All shapes are identical
+                                spec_avg = np.mean(self.spectrum_history, axis=0)
+                            else:
+                                # Shapes mismatch, use current spectrum without averaging
+                                spec_avg = spec_nonzero
+                                self.spectrum_history.clear()
+                                self.spectrum_history.append(spec_nonzero.copy())
+                        except Exception:
+                            # Fallback to current spectrum if averaging fails
+                            spec_avg = spec_nonzero
                         
                         # Plot the time-averaged spectrum
                         spectrum_fig.add_trace(go.Scatter(
@@ -505,10 +519,14 @@ class KSWebGUI:
                         # Calculate x-axis range safely with robust validation
                         # Ensure positive values and handle edge cases
                         wavelength_min = max(float(wavelength.min()), 1e-10)
-                        wavelength_max = max(float(wavelength.max()), wavelength_min * 10)
+                        wavelength_max = max(float(wavelength.max()), 1e-9)  # Ensure minimum reasonable range
+                        
+                        # Ensure we have a reasonable range (at least 10x)
+                        if wavelength_max < wavelength_min * 10:
+                            wavelength_max = wavelength_min * 10
                         
                         # Validate that log10 will succeed
-                        if wavelength_min > 0 and wavelength_max > 0:
+                        if wavelength_min > 0 and wavelength_max > wavelength_min:
                             x_range = [np.log10(wavelength_min), np.log10(wavelength_max)]
                         else:
                             # Fallback to safe default range
