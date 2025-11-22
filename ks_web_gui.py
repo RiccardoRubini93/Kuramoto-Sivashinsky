@@ -44,8 +44,7 @@ class KSWebGUI:
         self.host = host
         self.app = dash.Dash(__name__, title="KS Equation Simulator")
         
-        # Configuration
-        self.config = Config()
+        # Simulation state
         self.simulator = None
         self.is_running = False
         
@@ -279,7 +278,8 @@ class KSWebGUI:
         # Note: allow_duplicate=True is necessary here because info-text is updated
         # by both the preset callback and this update_plots callback. This is intentional
         # as they serve different purposes: preset updates provide config info,
-        # while this updates real-time simulation status.
+        # while this updates real-time simulation status. Without allow_duplicate,
+        # Dash would raise an error preventing multiple callbacks from targeting the same output.
         @self.app.callback(
             [Output('solution-plot', 'figure'),
              Output('energy-plot', 'figure'),
