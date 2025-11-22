@@ -18,7 +18,12 @@ import io
 class KSWebGUI:
     """Web-based GUI for KS equation simulation."""
     
-    def __init__(self, port=8050, debug=False):
+    # Configuration constants
+    UPDATE_INTERVAL_MS = 100  # Update frequency in milliseconds
+    HISTORY_BUFFER_SIZE = 500  # Maximum number of points to keep in energy history
+    DEFAULT_PORT = 8050
+    
+    def __init__(self, port=DEFAULT_PORT, debug=False, host='127.0.0.1'):
         """
         Initialize the web GUI.
         
@@ -28,9 +33,13 @@ class KSWebGUI:
             Port number for the web server
         debug : bool
             Enable debug mode
+        host : str
+            Host address (default: '127.0.0.1' for localhost only,
+            use '0.0.0.0' to allow external access)
         """
         self.port = port
         self.debug = debug
+        self.host = host
         self.app = dash.Dash(__name__, title="KS Equation Simulator")
         
         # Configuration
@@ -182,7 +191,7 @@ class KSWebGUI:
             
             # Hidden divs for state management
             dcc.Store(id='simulation-state', data={'running': False, 'initialized': False}),
-            dcc.Interval(id='interval-component', interval=100, n_intervals=0, disabled=True),
+            dcc.Interval(id='interval-component', interval=self.UPDATE_INTERVAL_MS, n_intervals=0, disabled=True),
             
         ], style={'fontFamily': 'Arial, sans-serif', 'backgroundColor': '#ffffff'})
     
@@ -275,7 +284,10 @@ class KSWebGUI:
         def update_plots(n_intervals, state):
             """Update plots with simulation data."""
             if not state.get('running', False) or self.simulator is None:
-                return {}, {}, "Simulation not running"
+                # Return empty figures when not running
+                empty_fig = go.Figure()
+                empty_fig.update_layout(template='plotly_white')
+                return empty_fig, empty_fig, "Simulation not running"
             
             try:
                 # Step the simulation
@@ -289,8 +301,8 @@ class KSWebGUI:
                 self.energy_history.append(current_state['energy'])
                 self.time_history.append(current_state['t'])
                 
-                # Keep only last 500 points
-                if len(self.energy_history) > 500:
+                # Keep only last HISTORY_BUFFER_SIZE points
+                if len(self.energy_history) > self.HISTORY_BUFFER_SIZE:
                     self.energy_history.pop(0)
                     self.time_history.pop(0)
                 
@@ -341,7 +353,9 @@ class KSWebGUI:
                 
             except Exception as e:
                 print(f"Error updating plots: {e}")
-                return {}, {}, f"Error: {str(e)}"
+                empty_fig = go.Figure()
+                empty_fig.update_layout(template='plotly_white')
+                return empty_fig, empty_fig, f"Error: {str(e)}"
         
         @self.app.callback(
             Output('download-data', 'data'),
@@ -414,11 +428,15 @@ class KSWebGUI:
         print(f"Kuramoto-Sivashinsky Web GUI")
         print(f"{'='*60}")
         print(f"\nOpen your web browser and navigate to:")
-        print(f"\n    http://localhost:{self.port}\n")
-        print(f"Press Ctrl+C to stop the server")
+        if self.host == '0.0.0.0':
+            print(f"\n    http://localhost:{self.port}")
+            print(f"    (accessible from any network interface)")
+        else:
+            print(f"\n    http://{self.host}:{self.port}")
+        print(f"\nPress Ctrl+C to stop the server")
         print(f"{'='*60}\n")
         
-        self.app.run(debug=self.debug, port=self.port, host='0.0.0.0')
+        self.app.run(debug=self.debug, port=self.port, host=self.host)
 
 
 def main():
@@ -426,14 +444,16 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='KS Equation Web GUI')
-    parser.add_argument('--port', type=int, default=8050, 
-                       help='Port number for web server (default: 8050)')
+    parser.add_argument('--port', type=int, default=KSWebGUI.DEFAULT_PORT, 
+                       help=f'Port number for web server (default: {KSWebGUI.DEFAULT_PORT})')
     parser.add_argument('--debug', action='store_true', 
                        help='Enable debug mode')
+    parser.add_argument('--host', type=str, default='127.0.0.1',
+                       help='Host address (default: 127.0.0.1 for localhost only, use 0.0.0.0 for external access)')
     
     args = parser.parse_args()
     
-    gui = KSWebGUI(port=args.port, debug=args.debug)
+    gui = KSWebGUI(port=args.port, debug=args.debug, host=args.host)
     gui.run()
 
 

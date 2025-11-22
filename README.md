@@ -49,8 +49,9 @@ Features:
 
 Optional arguments:
 ```bash
-python ks_web_gui.py --port 8888  # Use different port
-python ks_web_gui.py --debug      # Enable debug mode
+python ks_web_gui.py --port 8888         # Use different port
+python ks_web_gui.py --debug             # Enable debug mode
+python ks_web_gui.py --host 0.0.0.0      # Allow external network access (default: 127.0.0.1)
 ```
 
 ### Legacy Desktop GUI (tkinter)
