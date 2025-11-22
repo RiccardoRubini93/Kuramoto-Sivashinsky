@@ -50,6 +50,8 @@ class KSWebGUI:
         # Data storage
         self.energy_history = []
         self.time_history = []
+        self.spacetime_data = []
+        self.max_spacetime_frames = 200  # Keep last 200 frames
         
         # Setup layout and callbacks
         self._create_layout()
@@ -60,6 +62,7 @@ class KSWebGUI:
         self.simulator = None
         self.energy_history = []
         self.time_history = []
+        self.spacetime_data = []
     
     def _create_layout(self):
         """Create the web page layout."""
@@ -187,8 +190,18 @@ class KSWebGUI:
                 
                 # Right panel - Visualization
                 html.Div([
-                    dcc.Graph(id='solution-plot', style={'height': '45vh'}),
-                    dcc.Graph(id='energy-plot', style={'height': '45vh'}),
+                    html.Div([
+                        dcc.Graph(id='solution-plot', style={'height': '45vh'}),
+                    ], style={'width': '50%', 'display': 'inline-block'}),
+                    html.Div([
+                        dcc.Graph(id='energy-plot', style={'height': '45vh'}),
+                    ], style={'width': '50%', 'display': 'inline-block'}),
+                    html.Div([
+                        dcc.Graph(id='spectrum-plot', style={'height': '45vh'}),
+                    ], style={'width': '50%', 'display': 'inline-block'}),
+                    html.Div([
+                        dcc.Graph(id='spacetime-plot', style={'height': '45vh'}),
+                    ], style={'width': '50%', 'display': 'inline-block'}),
                 ], style={'width': '75%', 'display': 'inline-block', 'verticalAlign': 'top',
                          'padding': '20px'}),
                 
@@ -259,6 +272,7 @@ class KSWebGUI:
                     self.simulator.run_transient()
                     self.energy_history = []
                     self.time_history = []
+                    self.spacetime_data = []
                     
                     return {'running': True, 'initialized': True}, False
                 except Exception as e:
@@ -278,6 +292,8 @@ class KSWebGUI:
         @self.app.callback(
             [Output('solution-plot', 'figure'),
              Output('energy-plot', 'figure'),
+             Output('spectrum-plot', 'figure'),
+             Output('spacetime-plot', 'figure'),
              Output('info-text', 'children', allow_duplicate=True)],
             [Input('interval-component', 'n_intervals')],
             [State('simulation-state', 'data')],
@@ -295,7 +311,7 @@ class KSWebGUI:
                 # Return empty figures when not running
                 empty_fig = go.Figure()
                 empty_fig.update_layout(template='plotly_white')
-                return empty_fig, empty_fig, "Simulation not running"
+                return empty_fig, empty_fig, empty_fig, empty_fig, "Simulation not running"
             
             try:
                 # Step the simulation
@@ -350,20 +366,126 @@ class KSWebGUI:
                     showlegend=False
                 )
                 
+                # Store data for spacetime plot
+                self.spacetime_data.append(current_state['u'].copy())
+                if len(self.spacetime_data) > self.max_spacetime_frames:
+                    self.spacetime_data.pop(0)
+                
+                # Create spectral density plot (log scale)
+                spectrum_fig = go.Figure()
+                try:
+                    # Get power spectrum
+                    k, spec = self.simulator.model.get_spectrum()
+                    # Convert wavenumber to wavelength: λ = 2π/k (avoiding k=0)
+                    mask = k > 0
+                    k_nonzero = k[mask]
+                    spec_nonzero = spec[mask]
+                    
+                    if len(k_nonzero) > 0:
+                        wavelength = 2 * np.pi / k_nonzero
+                        
+                        # Ensure spectral density is positive (handle numerical precision)
+                        spec_nonzero = np.maximum(spec_nonzero, 1e-10)
+                        
+                        spectrum_fig.add_trace(go.Scatter(
+                            x=wavelength,
+                            y=spec_nonzero,
+                            mode='lines',
+                            line=dict(color='green', width=2),
+                            name='Spectral Density'
+                        ))
+                        spectrum_fig.update_layout(
+                            title='Power Spectrum vs Wavelength',
+                            xaxis_title='Wavelength λ',
+                            yaxis_title='Spectral Density',
+                            yaxis_type='log',  # Log scale for y-axis
+                            template='plotly_white',
+                            hovermode='x',
+                            showlegend=False
+                        )
+                        # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
+                        spectrum_fig.update_xaxes(autorange='reversed')
+                except Exception as e:
+                    # If spectrum computation fails, show error message
+                    spectrum_fig.add_annotation(
+                        text=f'Error computing spectrum:<br>{str(e)}',
+                        xref='paper', yref='paper',
+                        x=0.5, y=0.5,
+                        showarrow=False,
+                        font=dict(size=12, color='red')
+                    )
+                    spectrum_fig.update_layout(
+                        title='Power Spectrum vs Wavelength',
+                        template='plotly_white'
+                    )
+                
+                # Create spacetime diagram
+                spacetime_fig = go.Figure()
+                if len(self.spacetime_data) > 1:
+                    try:
+                        spacetime_array = np.array(self.spacetime_data)
+                        # Create time axis for the stored frames
+                        dt = self.simulator.model.dt
+                        time_start = current_state['t'] - len(self.spacetime_data) * dt
+                        time_end = current_state['t']
+                        
+                        spacetime_fig.add_trace(go.Heatmap(
+                            z=spacetime_array,
+                            x=current_state['x'],
+                            y=np.linspace(time_start, time_end, len(self.spacetime_data)),
+                            colorscale='RdBu_r',
+                            zmid=0,
+                            zmin=-5,
+                            zmax=5,
+                            colorbar=dict(title='u(x,t)')
+                        ))
+                        spacetime_fig.update_layout(
+                            title='Spacetime Evolution u(x,t)',
+                            xaxis_title='x',
+                            yaxis_title='Time',
+                            template='plotly_white',
+                            hovermode='closest'
+                        )
+                    except Exception as e:
+                        # If spacetime plot fails, show error message
+                        spacetime_fig.add_annotation(
+                            text=f'Error creating spacetime plot:<br>{str(e)}',
+                            xref='paper', yref='paper',
+                            x=0.5, y=0.5,
+                            showarrow=False,
+                            font=dict(size=12, color='red')
+                        )
+                        spacetime_fig.update_layout(
+                            title='Spacetime Evolution u(x,t)',
+                            template='plotly_white'
+                        )
+                else:
+                    spacetime_fig.add_annotation(
+                        text='Collecting data...',
+                        xref='paper', yref='paper',
+                        x=0.5, y=0.5,
+                        showarrow=False,
+                        font=dict(size=12)
+                    )
+                    spacetime_fig.update_layout(
+                        title='Spacetime Evolution u(x,t)',
+                        template='plotly_white'
+                    )
+                
                 # Update info
                 info = f"Time: {current_state['t']:.2f}\n"
                 info += f"Steps: {current_state['step']}\n"
                 info += f"Energy: {current_state['energy']:.4f}\n"
                 info += f"Running..."
                 
-                return solution_fig, energy_fig, info
+                return solution_fig, energy_fig, spectrum_fig, spacetime_fig, info
                 
             except Exception as e:
                 error_msg = f"Error updating plots: {e}"
                 logging.error(error_msg)
                 empty_fig = go.Figure()
                 empty_fig.update_layout(template='plotly_white')
-                return empty_fig, empty_fig, error_msg
+                return empty_fig, empty_fig, empty_fig, empty_fig, error_msg
         
         @self.app.callback(
             Output('download-data', 'data'),
@@ -389,6 +511,10 @@ class KSWebGUI:
                     'dt': self.simulator.model.dt,
                     'diffusion': self.simulator.model.diffusion
                 }
+                
+                # Add spacetime data if available
+                if len(self.spacetime_data) > 0:
+                    data['spacetime_data'] = [frame.tolist() for frame in self.spacetime_data]
                 
                 # Convert to JSON
                 json_str = json.dumps(data, indent=2)
