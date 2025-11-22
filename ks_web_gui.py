@@ -53,6 +53,10 @@ class KSWebGUI:
         self.spacetime_data = []
         self.max_spacetime_frames = 200  # Keep last 200 frames
         
+        # Spectrum history for time averaging
+        self.spectrum_history = []
+        self.max_spectrum_frames = 10  # Number of frames to average
+        
         # Setup layout and callbacks
         self._create_layout()
         self._setup_callbacks()
@@ -63,6 +67,7 @@ class KSWebGUI:
         self.energy_history = []
         self.time_history = []
         self.spacetime_data = []
+        self.spectrum_history = []
     
     def _create_layout(self):
         """Create the web page layout."""
@@ -98,48 +103,16 @@ class KSWebGUI:
                         padding: 20px;
                     }
                     
-                    /* Individual plot containers with hover effect */
+                    /* Individual plot containers */
                     .plot-container {
                         position: relative;
                         background: rgba(26, 31, 58, 0.8);
                         border: 1px solid rgba(0, 255, 255, 0.3);
                         border-radius: 12px;
                         padding: 15px;
-                        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
-                                    border-color 0.4s ease, 
-                                    box-shadow 0.4s ease, 
-                                    z-index 0.4s ease;
                         box-shadow: 0 4px 20px rgba(0, 255, 255, 0.1);
                         backdrop-filter: blur(10px);
                         overflow: hidden;
-                    }
-                    
-                    /* Glow effect on hover */
-                    .plot-container::before {
-                        content: '';
-                        position: absolute;
-                        top: -2px;
-                        left: -2px;
-                        right: -2px;
-                        bottom: -2px;
-                        background: linear-gradient(45deg, #00ffff, #00ccff, #0099ff, #00ffff);
-                        border-radius: 12px;
-                        opacity: 0;
-                        z-index: -1;
-                        transition: opacity 0.4s ease;
-                        filter: blur(10px);
-                    }
-                    
-                    .plot-container:hover::before {
-                        opacity: 0.5;
-                    }
-                    
-                    /* Expand effect on hover */
-                    .plot-container:hover {
-                        transform: scale(1.2) translateY(-10px);
-                        z-index: 10;
-                        border-color: rgba(0, 255, 255, 0.8);
-                        box-shadow: 0 15px 50px rgba(0, 255, 255, 0.3);
                     }
                     
                     /* Neon accent animations */
@@ -427,6 +400,7 @@ class KSWebGUI:
                     self.energy_history = []
                     self.time_history = []
                     self.spacetime_data = []
+                    self.spectrum_history = []
                     
                     return {'running': True, 'initialized': True}, False
                 except Exception as e:
@@ -466,7 +440,8 @@ class KSWebGUI:
                     template='plotly_dark',
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                    font=dict(color='#e0e0e0')
+                    font=dict(color='#e0e0e0'),
+                    margin=dict(l=60, r=20, t=40, b=50)
                 )
                 return empty_fig, empty_fig, "Simulation not running"
             
@@ -491,7 +466,7 @@ class KSWebGUI:
                 if len(self.spacetime_data) > self.max_spacetime_frames:
                     self.spacetime_data.pop(0)
                 
-                # Create spectral density plot (log scale)
+                # Create spectral density plot (log scale) with time averaging
                 spectrum_fig = go.Figure()
                 try:
                     # Get power spectrum
@@ -507,25 +482,37 @@ class KSWebGUI:
                         # Ensure spectral density is positive (handle numerical precision)
                         spec_nonzero = np.maximum(spec_nonzero, 1e-10)
                         
+                        # Store spectrum for time averaging
+                        self.spectrum_history.append(spec_nonzero.copy())
+                        if len(self.spectrum_history) > self.max_spectrum_frames:
+                            self.spectrum_history.pop(0)
+                        
+                        # Calculate time-averaged spectrum
+                        spec_avg = np.mean(self.spectrum_history, axis=0)
+                        
+                        # Plot the time-averaged spectrum
                         spectrum_fig.add_trace(go.Scatter(
                             x=wavelength,
-                            y=spec_nonzero,
+                            y=spec_avg,
                             mode='lines',
                             line=dict(color='#00ff88', width=2),
-                            name='Spectral Density'
+                            name='Time-Averaged Spectral Density'
                         ))
                         spectrum_fig.update_layout(
-                            title='Power Spectrum vs Wavelength',
+                            title='Power Spectrum vs Wavelength (Time-Averaged)',
                             xaxis_title='Wavelength λ (log scale)',
                             yaxis_title='Spectral Density (log scale)',
                             xaxis_type='log',  # Log scale for x-axis
                             yaxis_type='log',  # Log scale for y-axis
+                            xaxis=dict(range=[np.log10(wavelength.min()), np.log10(wavelength.max())], fixedrange=True),
+                            yaxis=dict(range=[-8, 2], fixedrange=True),  # Fixed y-axis range
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
                             font=dict(color='#e0e0e0'),
                             hovermode='x',
-                            showlegend=False
+                            showlegend=False,
+                            margin=dict(l=60, r=20, t=40, b=50)  # Optimize margins
                         )
                         # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
                         spectrum_fig.update_xaxes(autorange='reversed')
@@ -539,11 +526,12 @@ class KSWebGUI:
                         font=dict(size=12, color='#ff4466')
                     )
                     spectrum_fig.update_layout(
-                        title='Power Spectrum vs Wavelength',
+                        title='Power Spectrum vs Wavelength (Time-Averaged)',
                         template='plotly_dark',
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                        font=dict(color='#e0e0e0')
+                        font=dict(color='#e0e0e0'),
+                        margin=dict(l=60, r=20, t=40, b=50)
                     )
                 
                 # Create spacetime diagram - 3D Surface Plot
@@ -584,14 +572,14 @@ class KSWebGUI:
                                     center=dict(x=0, y=0.2, z=0),
                                     up=dict(x=0, y=0, z=1)
                                 ),
-                                aspectmode='manual',
-                                aspectratio=dict(x=1.5, y=2, z=0.6)
+                                aspectmode='auto'  # Use auto aspect mode to maximize space usage
                             ),
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
                             font=dict(color='#e0e0e0'),
-                            hovermode='closest'
+                            hovermode='closest',
+                            margin=dict(l=0, r=0, t=30, b=0)  # Minimize margins to maximize plot area
                         )
                     except Exception as e:
                         # If spacetime plot fails, show error message
@@ -612,7 +600,8 @@ class KSWebGUI:
                             template='plotly_dark',
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                            font=dict(color='#e0e0e0')
+                            font=dict(color='#e0e0e0'),
+                            margin=dict(l=0, r=0, t=30, b=0)
                         )
                 else:
                     spacetime_fig.add_annotation(
@@ -632,7 +621,8 @@ class KSWebGUI:
                         template='plotly_dark',
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                        font=dict(color='#e0e0e0')
+                        font=dict(color='#e0e0e0'),
+                        margin=dict(l=0, r=0, t=30, b=0)
                     )
                 
                 # Update info
@@ -651,7 +641,8 @@ class KSWebGUI:
                     template='plotly_dark',
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(20, 25, 45, 0.3)',
-                    font=dict(color='#e0e0e0')
+                    font=dict(color='#e0e0e0'),
+                    margin=dict(l=60, r=20, t=40, b=50)
                 )
                 return empty_fig, empty_fig, error_msg
         
