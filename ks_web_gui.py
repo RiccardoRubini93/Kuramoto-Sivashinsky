@@ -452,7 +452,7 @@ class KSWebGUI:
              State('camera-view', 'data')],
             prevent_initial_call=True
         )
-        def update_plots(n_intervals, state, camera_view='default'):
+        def update_plots(n_intervals, state, camera_view=None):
             """
             Update plots with simulation data.
             
@@ -661,7 +661,7 @@ class KSWebGUI:
                             hovermode='closest',
                             dragmode='orbit',  # Enable orbit dragmode for mouse rotation
                             margin=dict(l=0, r=0, t=30, b=0),  # Minimize margins to maximize plot area
-                            uirevision=camera_view  # Change uirevision when view changes to apply new camera, otherwise preserve rotation
+                            uirevision=camera_view  # Preserve user rotations when camera_view stays the same; apply new camera position when view changes
                         )
                     except Exception as e:
                         # If spacetime plot fails, show error message
