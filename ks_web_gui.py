@@ -70,14 +70,166 @@ class KSWebGUI:
         # Load default preset
         preset = Config.PRESETS['medium_re']
         
+        # Define custom CSS for hover effects and dark theme
+        self.app.index_string = '''
+        <!DOCTYPE html>
+        <html>
+            <head>
+                {%metas%}
+                <title>{%title%}</title>
+                {%favicon%}
+                {%css%}
+                <style>
+                    /* Dark theme base styles */
+                    body {
+                        background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+                        margin: 0;
+                        padding: 0;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        color: #e0e0e0;
+                    }
+                    
+                    /* Grid container for plots */
+                    .plot-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 20px;
+                        padding: 20px;
+                        perspective: 1000px;
+                    }
+                    
+                    /* Individual plot containers with hover effect */
+                    .plot-container {
+                        position: relative;
+                        background: rgba(26, 31, 58, 0.8);
+                        border: 1px solid rgba(0, 255, 255, 0.3);
+                        border-radius: 12px;
+                        padding: 15px;
+                        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                        box-shadow: 0 4px 20px rgba(0, 255, 255, 0.1);
+                        backdrop-filter: blur(10px);
+                        overflow: hidden;
+                    }
+                    
+                    /* Glow effect on hover */
+                    .plot-container::before {
+                        content: '';
+                        position: absolute;
+                        top: -2px;
+                        left: -2px;
+                        right: -2px;
+                        bottom: -2px;
+                        background: linear-gradient(45deg, #00ffff, #00ccff, #0099ff, #00ffff);
+                        border-radius: 12px;
+                        opacity: 0;
+                        z-index: -1;
+                        transition: opacity 0.4s ease;
+                        filter: blur(10px);
+                    }
+                    
+                    .plot-container:hover::before {
+                        opacity: 0.5;
+                    }
+                    
+                    /* Expand effect on hover */
+                    .plot-container:hover {
+                        transform: scale(1.05) translateY(-5px);
+                        z-index: 10;
+                        border-color: rgba(0, 255, 255, 0.8);
+                        box-shadow: 0 15px 50px rgba(0, 255, 255, 0.3);
+                    }
+                    
+                    /* Neon accent animations */
+                    @keyframes neon-pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.7; }
+                    }
+                    
+                    /* Control panel styling */
+                    .control-panel {
+                        background: linear-gradient(180deg, rgba(26, 31, 58, 0.95) 0%, rgba(15, 20, 40, 0.95) 100%);
+                        border-right: 2px solid rgba(0, 255, 255, 0.3);
+                        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
+                    }
+                    
+                    /* Input and dropdown styling */
+                    input[type="number"], .Select-control {
+                        background-color: rgba(20, 25, 45, 0.8) !important;
+                        border: 1px solid rgba(0, 255, 255, 0.3) !important;
+                        color: #e0e0e0 !important;
+                        border-radius: 6px;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    input[type="number"]:focus {
+                        border-color: rgba(0, 255, 255, 0.8) !important;
+                        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+                        outline: none;
+                    }
+                    
+                    /* Button hover effects */
+                    button {
+                        transition: all 0.3s ease !important;
+                    }
+                    
+                    button:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+                    }
+                    
+                    /* Status panel */
+                    .status-panel {
+                        background: rgba(20, 25, 45, 0.8) !important;
+                        border: 1px solid rgba(0, 255, 255, 0.3) !important;
+                        color: #00ff88 !important;
+                    }
+                    
+                    /* Header glow */
+                    h1 {
+                        text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+                        animation: neon-pulse 3s ease-in-out infinite;
+                    }
+                    
+                    /* Label styling */
+                    label {
+                        color: #a0b0c0 !important;
+                        font-weight: 500;
+                        text-transform: uppercase;
+                        font-size: 11px;
+                        letter-spacing: 0.5px;
+                    }
+                    
+                    /* Section headers */
+                    h3, h4 {
+                        color: #00ffff !important;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+                        padding-bottom: 8px;
+                    }
+                </style>
+            </head>
+            <body>
+                {%app_entry%}
+                <footer>
+                    {%config%}
+                    {%scripts%}
+                    {%renderer%}
+                </footer>
+            </body>
+        </html>
+        '''
+        
         self.app.layout = html.Div([
             # Header
             html.Div([
                 html.H1("Kuramoto-Sivashinsky Equation Simulator", 
-                       style={'textAlign': 'center', 'color': '#2c3e50', 'marginBottom': '10px'}),
+                       style={'textAlign': 'center', 'color': '#00ffff', 'marginBottom': '10px', 
+                              'fontWeight': 'bold', 'fontSize': '2.5em'}),
                 html.P("Interactive web-based simulation of the KS equation",
-                      style={'textAlign': 'center', 'color': '#7f8c8d', 'marginBottom': '20px'})
-            ]),
+                      style={'textAlign': 'center', 'color': '#a0b0c0', 'marginBottom': '20px',
+                             'fontSize': '1.1em', 'letterSpacing': '1px'})
+            ], style={'paddingTop': '20px', 'background': 'rgba(10, 14, 39, 0.5)'}),
             
             # Main container
             html.Div([
@@ -85,8 +237,8 @@ class KSWebGUI:
                 html.Div([
                     # Preset Selection
                     html.Div([
-                        html.H3("Control Panel", style={'color': '#2c3e50', 'marginBottom': '15px'}),
-                        html.Label("Preset Configuration:", style={'fontWeight': 'bold'}),
+                        html.H3("Control Panel", style={'color': '#00ffff', 'marginBottom': '15px'}),
+                        html.Label("Preset Configuration:", style={'fontWeight': 'bold', 'color': '#a0b0c0'}),
                         dcc.Dropdown(
                             id='preset-dropdown',
                             options=[
@@ -101,25 +253,25 @@ class KSWebGUI:
                     
                     # Parameters
                     html.Div([
-                        html.H4("Parameters", style={'color': '#34495e', 'marginTop': '20px'}),
+                        html.H4("Parameters", style={'color': '#00ccff', 'marginTop': '20px'}),
                         
-                        html.Label("Domain Length (L):", style={'marginTop': '10px'}),
+                        html.Label("Domain Length (L):", style={'marginTop': '10px', 'color': '#a0b0c0'}),
                         dcc.Input(id='L-input', type='number', value=preset['L'], 
                                  step=0.1, style={'width': '100%', 'marginBottom': '10px'}),
                         
-                        html.Label("Grid Points (N):"),
+                        html.Label("Grid Points (N):", style={'color': '#a0b0c0'}),
                         dcc.Input(id='N-input', type='number', value=preset['N'], 
                                  step=1, style={'width': '100%', 'marginBottom': '10px'}),
                         
-                        html.Label("Time Step (dt):"),
+                        html.Label("Time Step (dt):", style={'color': '#a0b0c0'}),
                         dcc.Input(id='dt-input', type='number', value=preset['dt'], 
                                  step=0.01, style={'width': '100%', 'marginBottom': '10px'}),
                         
-                        html.Label("Diffusion:"),
+                        html.Label("Diffusion:", style={'color': '#a0b0c0'}),
                         dcc.Input(id='diff-input', type='number', value=preset['diffusion'], 
                                  step=0.1, style={'width': '100%', 'marginBottom': '10px'}),
                         
-                        html.Label("Initial Condition:"),
+                        html.Label("Initial Condition:", style={'color': '#a0b0c0'}),
                         dcc.Dropdown(
                             id='ic-dropdown',
                             options=[
@@ -134,13 +286,13 @@ class KSWebGUI:
                     
                     # Simulation Settings
                     html.Div([
-                        html.H4("Simulation Settings", style={'color': '#34495e'}),
+                        html.H4("Simulation Settings", style={'color': '#00ccff'}),
                         
-                        html.Label("Transient Steps:"),
+                        html.Label("Transient Steps:", style={'color': '#a0b0c0'}),
                         dcc.Input(id='transient-input', type='number', value=500, 
                                  step=50, style={'width': '100%', 'marginBottom': '10px'}),
                         
-                        html.Label("Run Steps:"),
+                        html.Label("Run Steps:", style={'color': '#a0b0c0'}),
                         dcc.Input(id='steps-input', type='number', value=1000, 
                                  step=100, style={'width': '100%', 'marginBottom': '20px'}),
                     ]),
@@ -148,62 +300,76 @@ class KSWebGUI:
                     # Control Buttons
                     html.Div([
                         html.Button('Start Simulation', id='start-btn', n_clicks=0,
-                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '10px',
-                                         'backgroundColor': '#27ae60', 'color': 'white', 
-                                         'border': 'none', 'borderRadius': '5px', 'cursor': 'pointer'}),
+                                   style={'width': '100%', 'padding': '12px', 'marginBottom': '10px',
+                                         'backgroundColor': '#00ff88', 'color': '#0a0e27', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '14px', 'textTransform': 'uppercase'}),
                         html.Button('Stop', id='stop-btn', n_clicks=0,
-                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '10px',
-                                         'backgroundColor': '#e74c3c', 'color': 'white', 
-                                         'border': 'none', 'borderRadius': '5px', 'cursor': 'pointer'}),
+                                   style={'width': '100%', 'padding': '12px', 'marginBottom': '10px',
+                                         'backgroundColor': '#ff4466', 'color': 'white', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '14px', 'textTransform': 'uppercase'}),
                         html.Button('Reset', id='reset-btn', n_clicks=0,
-                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '20px',
-                                         'backgroundColor': '#95a5a6', 'color': 'white', 
-                                         'border': 'none', 'borderRadius': '5px', 'cursor': 'pointer'}),
+                                   style={'width': '100%', 'padding': '12px', 'marginBottom': '20px',
+                                         'backgroundColor': '#6677aa', 'color': 'white', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '14px', 'textTransform': 'uppercase'}),
                     ]),
                     
                     # Export section
                     html.Div([
-                        html.H4("Export", style={'color': '#34495e'}),
+                        html.H4("Export", style={'color': '#00ccff'}),
                         html.Button('Save Data', id='save-data-btn', n_clicks=0,
-                                   style={'width': '100%', 'padding': '8px', 'marginBottom': '8px',
-                                         'backgroundColor': '#3498db', 'color': 'white', 
-                                         'border': 'none', 'borderRadius': '5px', 'cursor': 'pointer'}),
+                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '8px',
+                                         'backgroundColor': '#0099ff', 'color': 'white', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '13px'}),
                         html.Button('Save Config', id='save-config-btn', n_clicks=0,
-                                   style={'width': '100%', 'padding': '8px', 'marginBottom': '8px',
-                                         'backgroundColor': '#3498db', 'color': 'white', 
-                                         'border': 'none', 'borderRadius': '5px', 'cursor': 'pointer'}),
+                                   style={'width': '100%', 'padding': '10px', 'marginBottom': '8px',
+                                         'backgroundColor': '#0099ff', 'color': 'white', 
+                                         'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer',
+                                         'fontWeight': 'bold', 'fontSize': '13px'}),
                         dcc.Download(id='download-data'),
                         dcc.Download(id='download-config'),
                     ], style={'marginBottom': '20px'}),
                     
                     # Info panel
                     html.Div([
-                        html.H4("Status", style={'color': '#34495e'}),
-                        html.Div(id='info-text', 
-                                style={'padding': '10px', 'backgroundColor': '#ecf0f1', 
-                                      'borderRadius': '5px', 'minHeight': '150px',
-                                      'fontFamily': 'monospace', 'fontSize': '12px'})
+                        html.H4("Status", style={'color': '#00ccff'}),
+                        html.Div(id='info-text', className='status-panel',
+                                style={'padding': '10px', 'backgroundColor': 'rgba(20, 25, 45, 0.8)', 
+                                      'borderRadius': '8px', 'minHeight': '150px', 'border': '1px solid rgba(0, 255, 255, 0.3)',
+                                      'fontFamily': 'monospace', 'fontSize': '12px', 'color': '#00ff88'})
                     ])
                     
                 ], style={'width': '25%', 'display': 'inline-block', 'verticalAlign': 'top',
-                         'padding': '20px', 'backgroundColor': '#f8f9fa'}),
+                         'padding': '20px', 'backgroundColor': 'rgba(15, 20, 40, 0.95)'}, 
+                   className='control-panel'),
                 
                 # Right panel - Visualization
                 html.Div([
                     html.Div([
-                        dcc.Graph(id='solution-plot', style={'height': '45vh'}),
-                    ], style={'width': '50%', 'display': 'inline-block'}),
+                        html.Div([
+                            dcc.Graph(id='solution-plot', style={'height': '45vh'}),
+                        ], className='plot-container'),
+                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
                     html.Div([
-                        dcc.Graph(id='energy-plot', style={'height': '45vh'}),
-                    ], style={'width': '50%', 'display': 'inline-block'}),
+                        html.Div([
+                            dcc.Graph(id='energy-plot', style={'height': '45vh'}),
+                        ], className='plot-container'),
+                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
                     html.Div([
-                        dcc.Graph(id='spectrum-plot', style={'height': '45vh'}),
-                    ], style={'width': '50%', 'display': 'inline-block'}),
+                        html.Div([
+                            dcc.Graph(id='spectrum-plot', style={'height': '45vh'}),
+                        ], className='plot-container'),
+                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
                     html.Div([
-                        dcc.Graph(id='spacetime-plot', style={'height': '45vh'}),
-                    ], style={'width': '50%', 'display': 'inline-block'}),
-                ], style={'width': '75%', 'display': 'inline-block', 'verticalAlign': 'top',
-                         'padding': '20px'}),
+                        html.Div([
+                            dcc.Graph(id='spacetime-plot', style={'height': '45vh'}),
+                        ], className='plot-container'),
+                    ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                ], style={'width': '75%', 'display': 'inline-block', 'verticalAlign': 'top'},
+                   className='plot-grid'),
                 
             ], style={'display': 'flex'}),
             
@@ -211,7 +377,7 @@ class KSWebGUI:
             dcc.Store(id='simulation-state', data={'running': False, 'initialized': False}),
             dcc.Interval(id='interval-component', interval=self.UPDATE_INTERVAL_MS, n_intervals=0, disabled=True),
             
-        ], style={'fontFamily': 'Arial, sans-serif', 'backgroundColor': '#ffffff'})
+        ], style={'fontFamily': 'Arial, sans-serif', 'backgroundColor': '#0a0e27', 'minHeight': '100vh'})
     
     def _setup_callbacks(self):
         """Setup all callback functions."""
@@ -310,7 +476,12 @@ class KSWebGUI:
             if not state.get('running', False) or self.simulator is None:
                 # Return empty figures when not running
                 empty_fig = go.Figure()
-                empty_fig.update_layout(template='plotly_white')
+                empty_fig.update_layout(
+                    template='plotly_dark',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                    font=dict(color='#e0e0e0')
+                )
                 return empty_fig, empty_fig, empty_fig, empty_fig, "Simulation not running"
             
             try:
@@ -335,7 +506,7 @@ class KSWebGUI:
                     x=current_state['x'],
                     y=current_state['u'],
                     mode='lines',
-                    line=dict(color='blue', width=2),
+                    line=dict(color='#00ffff', width=2),
                     name='u(x,t)'
                 ))
                 solution_fig.update_layout(
@@ -343,7 +514,10 @@ class KSWebGUI:
                     xaxis_title='x',
                     yaxis_title='u(x,t)',
                     yaxis_range=[-5, 5],
-                    template='plotly_white',
+                    template='plotly_dark',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                    font=dict(color='#e0e0e0'),
                     hovermode='x',
                     showlegend=False
                 )
@@ -354,14 +528,17 @@ class KSWebGUI:
                     x=self.time_history,
                     y=self.energy_history,
                     mode='lines',
-                    line=dict(color='red', width=1.5),
+                    line=dict(color='#ff4466', width=1.5),
                     name='Energy'
                 ))
                 energy_fig.update_layout(
                     title='System Energy',
                     xaxis_title='Time',
                     yaxis_title='Energy',
-                    template='plotly_white',
+                    template='plotly_dark',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                    font=dict(color='#e0e0e0'),
                     hovermode='x',
                     showlegend=False
                 )
@@ -391,7 +568,7 @@ class KSWebGUI:
                             x=wavelength,
                             y=spec_nonzero,
                             mode='lines',
-                            line=dict(color='green', width=2),
+                            line=dict(color='#00ff88', width=2),
                             name='Spectral Density'
                         ))
                         spectrum_fig.update_layout(
@@ -400,7 +577,10 @@ class KSWebGUI:
                             yaxis_title='Spectral Density (log scale)',
                             xaxis_type='log',  # Log scale for x-axis
                             yaxis_type='log',  # Log scale for y-axis
-                            template='plotly_white',
+                            template='plotly_dark',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                            font=dict(color='#e0e0e0'),
                             hovermode='x',
                             showlegend=False
                         )
@@ -413,11 +593,14 @@ class KSWebGUI:
                         xref='paper', yref='paper',
                         x=0.5, y=0.5,
                         showarrow=False,
-                        font=dict(size=12, color='red')
+                        font=dict(size=12, color='#ff4466')
                     )
                     spectrum_fig.update_layout(
                         title='Power Spectrum vs Wavelength',
-                        template='plotly_white'
+                        template='plotly_dark',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                        font=dict(color='#e0e0e0')
                     )
                 
                 # Create spacetime diagram
@@ -444,7 +627,10 @@ class KSWebGUI:
                             title='Spacetime Evolution u(x,t)',
                             xaxis_title='x',
                             yaxis_title='Time',
-                            template='plotly_white',
+                            template='plotly_dark',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                            font=dict(color='#e0e0e0'),
                             hovermode='closest'
                         )
                     except Exception as e:
@@ -454,11 +640,14 @@ class KSWebGUI:
                             xref='paper', yref='paper',
                             x=0.5, y=0.5,
                             showarrow=False,
-                            font=dict(size=12, color='red')
+                            font=dict(size=12, color='#ff4466')
                         )
                         spacetime_fig.update_layout(
                             title='Spacetime Evolution u(x,t)',
-                            template='plotly_white'
+                            template='plotly_dark',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                            font=dict(color='#e0e0e0')
                         )
                 else:
                     spacetime_fig.add_annotation(
@@ -466,11 +655,14 @@ class KSWebGUI:
                         xref='paper', yref='paper',
                         x=0.5, y=0.5,
                         showarrow=False,
-                        font=dict(size=12)
+                        font=dict(size=12, color='#00ffff')
                     )
                     spacetime_fig.update_layout(
                         title='Spacetime Evolution u(x,t)',
-                        template='plotly_white'
+                        template='plotly_dark',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                        font=dict(color='#e0e0e0')
                     )
                 
                 # Update info
@@ -485,7 +677,12 @@ class KSWebGUI:
                 error_msg = f"Error updating plots: {e}"
                 logging.error(error_msg)
                 empty_fig = go.Figure()
-                empty_fig.update_layout(template='plotly_white')
+                empty_fig.update_layout(
+                    template='plotly_dark',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(20, 25, 45, 0.3)',
+                    font=dict(color='#e0e0e0')
+                )
                 return empty_fig, empty_fig, empty_fig, empty_fig, error_msg
         
         @self.app.callback(
