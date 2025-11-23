@@ -325,13 +325,12 @@ class KSGUI:
                 except (ValueError, tk.TclError):
                     spectrum_min_wavelength = 1e-3  # Default value
                 
-                # Set limits: min is user-specified or data min (whichever is larger), max is data max
+                # Set limits: use user-specified minimum or data minimum (whichever is larger)
                 wavelength_min = max(spectrum_min_wavelength, wavelength.min())
                 wavelength_max = wavelength.max()
-                self.ax1.set_xlim(wavelength_max, wavelength_min)  # Reversed for inverted x-axis
-                
+                self.ax1.set_xlim(wavelength_min, wavelength_max)
                 # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
-                # Note: set_xlim already handles this by specifying max first, then min
+                self.ax1.invert_xaxis()
         except Exception as e:
             # If spectrum computation fails, show error message
             self.ax1.text(0.5, 0.5, f'Error computing spectrum:\n{str(e)}', 

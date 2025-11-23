@@ -563,7 +563,7 @@ class KSWebGUI:
                         ))
                         
                         # Calculate x-axis range safely with robust validation
-                        # Use user-specified minimum wavelength or data minimum, whichever is larger
+                        # Use the maximum of: user-specified min, data min, and absolute min (for safety)
                         wavelength_min = max(spectrum_min_wavelength, float(wavelength.min()), self.SPECTRUM_WAVELENGTH_MIN)
                         wavelength_max = float(wavelength.max())
                         
