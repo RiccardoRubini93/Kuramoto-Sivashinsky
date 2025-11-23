@@ -1,6 +1,6 @@
 # Multi-stage build for optimized production image
 # Stage 1: Base image with dependencies
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set working directory
 WORKDIR /app
@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir gunicorn
+RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt && \
+    pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org gunicorn
 
 # Stage 2: Production image
 FROM python:3.11-slim
@@ -56,11 +56,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/', timeout=5)" || exit 1
 
 # Run the application with gunicorn
-CMD gunicorn --bind ${HOST}:${PORT} \
-    --workers 1 \
-    --threads 4 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info \
-    wsgi:server
+CMD ["sh", "-c", "gunicorn --bind ${HOST}:${PORT} --workers 1 --threads 4 --timeout 120 --access-logfile - --error-logfile - --log-level info wsgi:server"]
