@@ -43,7 +43,8 @@ class KS(object):
         self.diffusion = diffusion
         
         # Setup wavenumbers and spectral operators
-        self.wavenums = N * np.fft.fftfreq(N)[0:int((N/2)+1)]
+        # Use rfftfreq to get all positive frequencies including Nyquist
+        self.wavenums = N * np.fft.rfftfreq(N)
         k = self.wavenums.astype(np.float64) / L
         
         # Spectral derivative operator and linear term
@@ -157,7 +158,7 @@ class KS(object):
             (wavenumbers, power_spectrum)
         """
         spec = np.abs(self.xspec)**2
-        return self.wavenums[:-1], spec[:-1]
+        return self.wavenums, spec
     
     def plot_spectrum(self, u):
         """
