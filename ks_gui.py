@@ -21,6 +21,7 @@ class KSGUI:
     
     # Default visualization settings
     DEFAULT_SPECTRUM_MIN_WAVELENGTH = 1e-3  # Default minimum wavelength (10^-3)
+    SPECTRUM_WAVELENGTH_MIN = 1e-10  # Absolute minimum wavelength for safety
     
     def __init__(self, root):
         """
@@ -328,8 +329,8 @@ class KSGUI:
                 except (ValueError, tk.TclError):
                     spectrum_min_wavelength = self.DEFAULT_SPECTRUM_MIN_WAVELENGTH
                 
-                # Set limits: use user-specified minimum or data minimum (whichever is larger)
-                wavelength_min = max(spectrum_min_wavelength, wavelength.min())
+                # Set limits: use the maximum of user-specified min, data min, and safety min
+                wavelength_min = max(spectrum_min_wavelength, wavelength.min(), self.SPECTRUM_WAVELENGTH_MIN)
                 wavelength_max = wavelength.max()
                 self.ax1.set_xlim(wavelength_min, wavelength_max)
                 # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
