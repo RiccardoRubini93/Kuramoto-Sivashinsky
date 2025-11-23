@@ -35,6 +35,7 @@ class KSWebGUI:
     SPECTRUM_MIN_RANGE_FACTOR = 1.1  # Minimum range factor (10% increase)
     SPECTRUM_X_FALLBACK_MIN = -2  # Fallback x-axis range minimum
     SPECTRUM_X_FALLBACK_MAX = 2   # Fallback x-axis range maximum
+    DEFAULT_SPECTRUM_MIN_WAVELENGTH = 1e-3  # Default minimum wavelength to display (10^-3)
     
     def __init__(self, port=DEFAULT_PORT, debug=False, host='127.0.0.1'):
         """
@@ -284,6 +285,18 @@ class KSWebGUI:
                                  step=100, style={'width': '100%', 'marginBottom': '20px'}),
                     ]),
                     
+                    # Visualization Settings
+                    html.Div([
+                        html.H4("Visualization Settings", style={'color': '#00ccff'}),
+                        
+                        html.Label("Spectrum Min Wavelength:", style={'color': '#a0b0c0'}),
+                        dcc.Input(id='spectrum-min-wavelength-input', type='number', 
+                                 value=1e-3, min=1e-10, max=100, step=0.001,
+                                 style={'width': '100%', 'marginBottom': '5px'}),
+                        html.P("(Controls the lower limit of wavelength display, default: 0.001)", 
+                              style={'fontSize': '10px', 'color': '#888', 'marginBottom': '20px', 'marginTop': '0px'}),
+                    ]),
+                    
                     # Control Buttons
                     html.Div([
                         html.Button('Start Simulation', id='start-btn', n_clicks=0,
@@ -451,10 +464,11 @@ class KSWebGUI:
              Output('info-text', 'children', allow_duplicate=True)],
             [Input('interval-component', 'n_intervals')],
             [State('simulation-state', 'data'),
-             State('camera-view', 'data')],
+             State('camera-view', 'data'),
+             State('spectrum-min-wavelength-input', 'value')],
             prevent_initial_call=True
         )
-        def update_plots(n_intervals, state, camera_view=None):
+        def update_plots(n_intervals, state, camera_view=None, spectrum_min_wavelength=None):
             """
             Update plots with simulation data.
             
@@ -465,6 +479,10 @@ class KSWebGUI:
             # Default camera view if None
             if camera_view is None:
                 camera_view = 'default'
+            
+            # Default spectrum minimum wavelength if None
+            if spectrum_min_wavelength is None or spectrum_min_wavelength <= 0:
+                spectrum_min_wavelength = self.DEFAULT_SPECTRUM_MIN_WAVELENGTH
             
             if not state.get('running', False) or self.simulator is None:
                 # Return empty figures when not running
@@ -545,8 +563,8 @@ class KSWebGUI:
                         ))
                         
                         # Calculate x-axis range safely with robust validation
-                        # Ensure positive values and handle edge cases
-                        wavelength_min = max(float(wavelength.min()), self.SPECTRUM_WAVELENGTH_MIN)
+                        # Use user-specified minimum wavelength or data minimum, whichever is larger
+                        wavelength_min = max(spectrum_min_wavelength, float(wavelength.min()), self.SPECTRUM_WAVELENGTH_MIN)
                         wavelength_max = float(wavelength.max())
                         
                         # Ensure wavelength_max maintains minimum range for visibility
