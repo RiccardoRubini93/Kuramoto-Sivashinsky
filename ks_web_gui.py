@@ -388,6 +388,7 @@ class KSWebGUI:
              Output('N-input', 'value'),
              Output('dt-input', 'value'),
              Output('diff-input', 'value'),
+             Output('spectrum-min-wavelength-input', 'value'),
              Output('info-text', 'children')],
             [Input('preset-dropdown', 'value')],
             prevent_initial_call=False
@@ -396,8 +397,9 @@ class KSWebGUI:
             """Update parameters when preset is selected."""
             preset = Config.PRESETS.get(preset_name, Config.PRESETS['medium_re'])
             info = f"Loaded preset: {preset_name}\n{preset.get('description', '')}"
+            # Reset spectrum min wavelength to default when loading preset
             # Don't reset initial condition - let user keep their selection
-            return preset['L'], preset['N'], preset['dt'], preset['diffusion'], info
+            return preset['L'], preset['N'], preset['dt'], preset['diffusion'], self.DEFAULT_SPECTRUM_MIN_WAVELENGTH, info
         
         @self.app.callback(
             [Output('simulation-state', 'data'),
@@ -462,13 +464,13 @@ class KSWebGUI:
             [Output('spectrum-plot', 'figure'),
              Output('spacetime-plot', 'figure'),
              Output('info-text', 'children', allow_duplicate=True)],
-            [Input('interval-component', 'n_intervals')],
+            [Input('interval-component', 'n_intervals'),
+             Input('spectrum-min-wavelength-input', 'value')],
             [State('simulation-state', 'data'),
-             State('camera-view', 'data'),
-             State('spectrum-min-wavelength-input', 'value')],
+             State('camera-view', 'data')],
             prevent_initial_call=True
         )
-        def update_plots(n_intervals, state, camera_view=None, spectrum_min_wavelength=None):
+        def update_plots(n_intervals, spectrum_min_wavelength, state, camera_view=None):
             """
             Update plots with simulation data.
             
