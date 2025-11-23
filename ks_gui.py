@@ -19,6 +19,10 @@ import threading
 class KSGUI:
     """Interactive GUI for KS equation simulation."""
     
+    # Default visualization settings
+    DEFAULT_SPECTRUM_MIN_WAVELENGTH = 1e-3  # Default minimum wavelength (10^-3)
+    SPECTRUM_WAVELENGTH_MIN = 1e-10  # Absolute minimum wavelength for safety
+    
     def __init__(self, root):
         """
         Initialize the GUI.
@@ -109,9 +113,17 @@ class KSGUI:
         self.steps_var = tk.StringVar(value="1000")
         ttk.Entry(sim_frame, textvariable=self.steps_var, width=10).grid(row=1, column=1, pady=3, padx=5)
         
+        # Visualization Settings
+        viz_frame = ttk.LabelFrame(self.control_frame, text="Visualization", padding=5)
+        viz_frame.grid(row=3, column=0, columnspan=2, sticky='ew', pady=10)
+        
+        ttk.Label(viz_frame, text="Spectrum Min λ:").grid(row=0, column=0, sticky='w', pady=3)
+        self.spectrum_min_var = tk.StringVar(value=str(self.DEFAULT_SPECTRUM_MIN_WAVELENGTH))
+        ttk.Entry(viz_frame, textvariable=self.spectrum_min_var, width=10).grid(row=0, column=1, pady=3, padx=5)
+        
         # Control Buttons
         btn_frame = ttk.Frame(self.control_frame)
-        btn_frame.grid(row=3, column=0, columnspan=2, pady=15)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=15)
         
         self.start_btn = ttk.Button(btn_frame, text="Start", command=self.start_simulation)
         self.start_btn.grid(row=0, column=0, padx=5, pady=5)
@@ -124,7 +136,7 @@ class KSGUI:
         
         # Save/Export
         export_frame = ttk.LabelFrame(self.control_frame, text="Export", padding=5)
-        export_frame.grid(row=4, column=0, columnspan=2, sticky='ew', pady=10)
+        export_frame.grid(row=5, column=0, columnspan=2, sticky='ew', pady=10)
         
         ttk.Button(export_frame, text="Save Data", command=self.save_data).pack(fill='x', pady=3)
         ttk.Button(export_frame, text="Save Config", command=self.save_config).pack(fill='x', pady=3)
@@ -132,7 +144,7 @@ class KSGUI:
         
         # Info Panel
         info_frame = ttk.LabelFrame(self.control_frame, text="Info", padding=5)
-        info_frame.grid(row=5, column=0, columnspan=2, sticky='ew', pady=10)
+        info_frame.grid(row=6, column=0, columnspan=2, sticky='ew', pady=10)
         
         self.info_text = tk.Text(info_frame, height=8, width=30, state='disabled')
         self.info_text.pack(fill='both', expand=True)
@@ -308,6 +320,19 @@ class KSGUI:
                 self.ax1.set_title('Power Spectrum vs Wavelength')
                 self.ax1.legend(loc='best')
                 self.ax1.grid(True, alpha=0.3)
+                
+                # Set x-axis limits based on user-specified minimum wavelength
+                try:
+                    spectrum_min_wavelength = float(self.spectrum_min_var.get())
+                    if spectrum_min_wavelength <= 0:
+                        spectrum_min_wavelength = self.DEFAULT_SPECTRUM_MIN_WAVELENGTH
+                except (ValueError, tk.TclError):
+                    spectrum_min_wavelength = self.DEFAULT_SPECTRUM_MIN_WAVELENGTH
+                
+                # Set limits: use the maximum of user-specified min, data min, and safety min
+                wavelength_min = max(spectrum_min_wavelength, wavelength.min(), self.SPECTRUM_WAVELENGTH_MIN)
+                wavelength_max = wavelength.max()
+                self.ax1.set_xlim(wavelength_min, wavelength_max)
                 # Reverse x-axis so smaller wavelengths (higher frequencies) are on the right
                 self.ax1.invert_xaxis()
         except Exception as e:
