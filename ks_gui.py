@@ -19,6 +19,9 @@ import threading
 class KSGUI:
     """Interactive GUI for KS equation simulation."""
     
+    # Default visualization settings
+    DEFAULT_SPECTRUM_MIN_WAVELENGTH = 1e-3  # Default minimum wavelength (10^-3)
+    
     def __init__(self, root):
         """
         Initialize the GUI.
@@ -114,7 +117,7 @@ class KSGUI:
         viz_frame.grid(row=3, column=0, columnspan=2, sticky='ew', pady=10)
         
         ttk.Label(viz_frame, text="Spectrum Min λ:").grid(row=0, column=0, sticky='w', pady=3)
-        self.spectrum_min_var = tk.StringVar(value="0.001")
+        self.spectrum_min_var = tk.StringVar(value=str(self.DEFAULT_SPECTRUM_MIN_WAVELENGTH))
         ttk.Entry(viz_frame, textvariable=self.spectrum_min_var, width=10).grid(row=0, column=1, pady=3, padx=5)
         
         # Control Buttons
@@ -321,9 +324,9 @@ class KSGUI:
                 try:
                     spectrum_min_wavelength = float(self.spectrum_min_var.get())
                     if spectrum_min_wavelength <= 0:
-                        spectrum_min_wavelength = 1e-3  # Default value
+                        spectrum_min_wavelength = self.DEFAULT_SPECTRUM_MIN_WAVELENGTH
                 except (ValueError, tk.TclError):
-                    spectrum_min_wavelength = 1e-3  # Default value
+                    spectrum_min_wavelength = self.DEFAULT_SPECTRUM_MIN_WAVELENGTH
                 
                 # Set limits: use user-specified minimum or data minimum (whichever is larger)
                 wavelength_min = max(spectrum_min_wavelength, wavelength.min())

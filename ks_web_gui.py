@@ -291,7 +291,7 @@ class KSWebGUI:
                         
                         html.Label("Spectrum Min Wavelength:", style={'color': '#a0b0c0'}),
                         dcc.Input(id='spectrum-min-wavelength-input', type='number', 
-                                 value=1e-3, min=1e-10, max=100, step=0.001,
+                                 value=self.DEFAULT_SPECTRUM_MIN_WAVELENGTH, min=1e-10, max=100, step=0.001,
                                  style={'width': '100%', 'marginBottom': '5px'}),
                         html.P("(Controls the lower limit of wavelength display, default: 0.001)", 
                               style={'fontSize': '10px', 'color': '#888', 'marginBottom': '20px', 'marginTop': '0px'}),
