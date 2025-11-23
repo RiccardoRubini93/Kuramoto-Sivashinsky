@@ -189,9 +189,7 @@ class KSGUI:
             self.N_var.set(str(preset['N']))
             self.dt_var.set(str(preset['dt']))
             self.diff_var.set(str(preset['diffusion']))
-            # Reset initial condition to 'default' when loading preset
-            # since presets don't specify an initial condition
-            self.ic_var.set('default')
+            # Don't reset initial condition - let user keep their selection
             self.update_info(f"Loaded preset: {preset_name}\n{preset.get('description', '')}")
     
     def get_current_config(self):
