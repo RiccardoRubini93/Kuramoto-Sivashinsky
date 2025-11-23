@@ -169,11 +169,12 @@ class KS(object):
         u : array
             Solution in physical space
         """
-        sp = np.sum(np.abs(np.fft.fft(u)), 0)
+        # Use rfft to match the wavenumber array
+        sp = np.abs(np.fft.rfft(u))
         k = self.wavenums
         
         pl.figure(1)
-        pl.semilogy(k[:-1], sp[0:len(k)-1]/max(sp), "r--", lw=3)
+        pl.semilogy(k, sp/max(sp), "r--", lw=3)
         pl.xlabel("k", fontsize=12)
         pl.ylim([1e-4, 1.2])
         pl.show()
