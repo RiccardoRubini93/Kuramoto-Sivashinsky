@@ -65,10 +65,10 @@ class KS(object):
             elif initial_condition == 'zero':
                 # Start with zero and add small Gaussian perturbation at center
                 x = np.zeros(N)
-                # Gaussian parameters
-                center = np.pi * L  # Center of domain [0, 2*pi*L]
-                amplitude = 0.01  # Very small perturbation
-                width = L / 4  # Width of the Gaussian
+                # Gaussian parameters (chosen to create a very small perturbation)
+                center = np.pi * L  # Center of domain [0, 2*pi*L)
+                amplitude = 0.01  # Very small amplitude
+                width = L / 4  # Standard deviation of Gaussian
                 # Add Gaussian perturbation
                 x += amplitude * np.exp(-((self.xx - center)**2) / (2 * width**2))
             else:
