@@ -1,0 +1,19 @@
+# App Engine Standard Environment Configuration
+# This file is used when deploying to App Engine Standard Environment
+# For manual deployment: gcloud app deploy app.yaml
+
+runtime: python311
+instance_class: F2
+
+entrypoint: gunicorn --bind :$PORT --workers 1 --threads 4 --timeout 120 wsgi:server
+
+env_variables:
+  PORT: 8080
+  HOST: 0.0.0.0
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.75
+  max_concurrent_requests: 80

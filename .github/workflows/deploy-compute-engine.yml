@@ -1,0 +1,119 @@
+name: Deploy to Compute Engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      machine_type:
+        description: 'Compute Engine machine type'
+        required: true
+        default: 'e2-standard-2'
+        type: choice
+        options:
+          - e2-micro
+          - e2-small
+          - e2-medium
+          - e2-standard-2
+          - e2-standard-4
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  INSTANCE_NAME: ks-simulator-vm
+  ZONE: us-central1-a
+  REGION: us-central1
+
+jobs:
+  deploy:
+    name: Deploy to Compute Engine
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Configure Docker for GCP
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+      
+      - name: Build and Push Docker image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/ks-simulator/ks-simulator:latest .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/ks-simulator/ks-simulator:latest
+      
+      - name: Check if instance exists
+        id: check_instance
+        run: |
+          if gcloud compute instances describe ${{ env.INSTANCE_NAME }} --zone=${{ env.ZONE }} --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Compute Engine instance
+        if: steps.check_instance.outputs.exists == 'false'
+        run: |
+          gcloud compute instances create-with-container ${{ env.INSTANCE_NAME }} \
+            --project=${{ env.PROJECT_ID }} \
+            --zone=${{ env.ZONE }} \
+            --machine-type=${{ github.event.inputs.machine_type }} \
+            --network-interface=network-tier=PREMIUM,subnet=default \
+            --maintenance-policy=MIGRATE \
+            --provisioning-model=STANDARD \
+            --scopes=https://www.googleapis.com/auth/cloud-platform \
+            --tags=http-server,https-server \
+            --container-image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/ks-simulator/ks-simulator:latest \
+            --container-restart-policy=always \
+            --container-env=PORT=8080,HOST=0.0.0.0 \
+            --create-disk=auto-delete=yes,boot=yes,device-name=${{ env.INSTANCE_NAME }},image=projects/cos-cloud/global/images/cos-stable-109-17800-147-15,mode=rw,size=10,type=projects/${{ env.PROJECT_ID }}/zones/${{ env.ZONE }}/diskTypes/pd-balanced \
+            --no-shielded-secure-boot \
+            --shielded-vtpm \
+            --shielded-integrity-monitoring \
+            --labels=container-vm=cos-stable-109-17800-147-15
+      
+      - name: Update existing instance
+        if: steps.check_instance.outputs.exists == 'true'
+        run: |
+          gcloud compute instances update-container ${{ env.INSTANCE_NAME }} \
+            --project=${{ env.PROJECT_ID }} \
+            --zone=${{ env.ZONE }} \
+            --container-image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/ks-simulator/ks-simulator:latest
+          
+          # Restart the instance to apply changes
+          gcloud compute instances reset ${{ env.INSTANCE_NAME }} \
+            --project=${{ env.PROJECT_ID }} \
+            --zone=${{ env.ZONE }}
+      
+      - name: Create firewall rule (if not exists)
+        run: |
+          if ! gcloud compute firewall-rules describe allow-ks-simulator --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+            gcloud compute firewall-rules create allow-ks-simulator \
+              --project=${{ env.PROJECT_ID }} \
+              --direction=INGRESS \
+              --priority=1000 \
+              --network=default \
+              --action=ALLOW \
+              --rules=tcp:8080 \
+              --source-ranges=0.0.0.0/0 \
+              --target-tags=http-server
+          fi
+      
+      - name: Get Instance External IP
+        run: |
+          echo "Service deployed successfully!"
+          EXTERNAL_IP=$(gcloud compute instances describe ${{ env.INSTANCE_NAME }} \
+            --project=${{ env.PROJECT_ID }} \
+            --zone=${{ env.ZONE }} \
+            --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+          echo "Access the application at: http://${EXTERNAL_IP}:8080"
