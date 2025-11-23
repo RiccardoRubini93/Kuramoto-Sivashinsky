@@ -1,0 +1,45 @@
+# App Engine Flexible Environment Configuration
+# This file is used when deploying to App Engine Flexible Environment
+# For manual deployment: gcloud app deploy app.flexible.yaml
+
+runtime: custom
+env: flex
+
+env_variables:
+  PORT: 8080
+  HOST: 0.0.0.0
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 10
+  cool_down_period_sec: 120
+  cpu_utilization:
+    target_utilization: 0.65
+
+resources:
+  cpu: 2
+  memory_gb: 2
+  disk_size_gb: 10
+  volumes:
+  - name: ramdisk1
+    volume_type: tmpfs
+    size_gb: 0.5
+
+network:
+  forwarded_ports:
+    - 8080
+
+liveness_check:
+  path: "/"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+readiness_check:
+  path: "/"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+  app_start_timeout_sec: 300

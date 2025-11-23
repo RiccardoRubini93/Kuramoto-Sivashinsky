@@ -1,0 +1,73 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - cloud-deploy
+      - main
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: ks-simulator
+  REGION: us-central1
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Configure Docker for GCP
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+      
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+      
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+      
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --allow-unauthenticated \
+            --memory=2Gi \
+            --cpu=2 \
+            --timeout=300 \
+            --max-instances=10 \
+            --min-instances=0 \
+            --port=8080 \
+            --set-env-vars="PORT=8080,HOST=0.0.0.0"
+      
+      - name: Get Service URL
+        run: |
+          echo "Service deployed successfully!"
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)'
