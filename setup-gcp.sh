@@ -30,10 +30,10 @@ fi
 
 echo ""
 echo "Setting project to: $PROJECT_ID"
-gcloud config set project $PROJECT_ID
+gcloud config set project "$PROJECT_ID"
 
 # Get project number
-PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
 echo "Project Number: $PROJECT_NUMBER"
 echo ""
 
@@ -54,7 +54,7 @@ APIs=(
 
 for api in "${APIs[@]}"; do
     echo "Enabling $api..."
-    gcloud services enable $api --project=$PROJECT_ID
+    gcloud services enable "$api" --project="$PROJECT_ID"
 done
 
 echo ""
@@ -70,15 +70,15 @@ echo ""
 REGION="us-central1"
 REPO_NAME="ks-simulator"
 
-if gcloud artifacts repositories describe $REPO_NAME --location=$REGION --project=$PROJECT_ID &> /dev/null; then
+if gcloud artifacts repositories describe "$REPO_NAME" --location="$REGION" --project="$PROJECT_ID" &> /dev/null; then
     echo "ℹ️  Repository already exists"
 else
     echo "Creating Artifact Registry repository..."
-    gcloud artifacts repositories create $REPO_NAME \
+    gcloud artifacts repositories create "$REPO_NAME" \
         --repository-format=docker \
-        --location=$REGION \
+        --location="$REGION" \
         --description="KS Simulator Docker images" \
-        --project=$PROJECT_ID
+        --project="$PROJECT_ID"
     echo "✅ Repository created"
 fi
 
@@ -101,12 +101,12 @@ if [ -z "$GITHUB_REPO" ]; then
 fi
 
 # Create pool
-if gcloud iam workload-identity-pools describe $POOL_NAME --location=global --project=$PROJECT_ID &> /dev/null; then
+if gcloud iam workload-identity-pools describe "$POOL_NAME" --location=global --project="$PROJECT_ID" &> /dev/null; then
     echo "ℹ️  Workload Identity Pool already exists"
 else
     echo "Creating Workload Identity Pool..."
-    gcloud iam workload-identity-pools create $POOL_NAME \
-        --project=$PROJECT_ID \
+    gcloud iam workload-identity-pools create "$POOL_NAME" \
+        --project="$PROJECT_ID" \
         --location=global \
         --display-name="GitHub Actions Pool"
     echo "✅ Pool created"
@@ -115,14 +115,14 @@ fi
 echo ""
 
 # Create provider
-if gcloud iam workload-identity-pools providers describe $PROVIDER_NAME \
+if gcloud iam workload-identity-pools providers describe "$PROVIDER_NAME" \
     --workload-identity-pool=$POOL_NAME \
     --location=global \
     --project=$PROJECT_ID &> /dev/null; then
     echo "ℹ️  Workload Identity Provider already exists"
 else
     echo "Creating Workload Identity Provider..."
-    gcloud iam workload-identity-pools providers create-oidc $PROVIDER_NAME \
+    gcloud iam workload-identity-pools providers create-oidc "$PROVIDER_NAME" \
         --project=$PROJECT_ID \
         --location=global \
         --workload-identity-pool=$POOL_NAME \
@@ -143,11 +143,11 @@ echo ""
 SA_NAME="github-actions-sa"
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
-if gcloud iam service-accounts describe $SA_EMAIL --project=$PROJECT_ID &> /dev/null; then
+if gcloud iam service-accounts describe "$SA_EMAIL" --project=$PROJECT_ID &> /dev/null; then
     echo "ℹ️  Service account already exists"
 else
     echo "Creating service account..."
-    gcloud iam service-accounts create $SA_NAME \
+    gcloud iam service-accounts create "$SA_NAME" \
         --project=$PROJECT_ID \
         --display-name="GitHub Actions Service Account"
     echo "✅ Service account created"
@@ -172,7 +172,7 @@ ROLES=(
 
 for role in "${ROLES[@]}"; do
     echo "Granting $role..."
-    gcloud projects add-iam-policy-binding $PROJECT_ID \
+    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
         --member="serviceAccount:${SA_EMAIL}" \
         --role="$role" \
         --condition=None \
@@ -189,13 +189,13 @@ echo "Step 6: Configuring Workload Identity"
 echo "=================================================="
 echo ""
 
-WORKLOAD_IDENTITY_POOL_ID=$(gcloud iam workload-identity-pools describe $POOL_NAME \
+WORKLOAD_IDENTITY_POOL_ID=$(gcloud iam workload-identity-pools describe "$POOL_NAME" \
     --project=$PROJECT_ID \
     --location=global \
     --format="value(name)")
 
 echo "Allowing GitHub Actions to impersonate service account..."
-gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
+gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
     --project=$PROJECT_ID \
     --role="roles/iam.workloadIdentityUser" \
     --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${GITHUB_REPO}"
@@ -204,7 +204,7 @@ echo "✅ Workload Identity configured"
 echo ""
 
 # Get provider resource name
-PROVIDER_RESOURCE=$(gcloud iam workload-identity-pools providers describe $PROVIDER_NAME \
+PROVIDER_RESOURCE=$(gcloud iam workload-identity-pools providers describe "$PROVIDER_NAME" \
     --project=$PROJECT_ID \
     --location=global \
     --workload-identity-pool=$POOL_NAME \

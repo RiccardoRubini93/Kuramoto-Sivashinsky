@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt && \
-    pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org gunicorn
+RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
 
 # Stage 2: Production image
 FROM python:3.11-slim
@@ -35,7 +34,7 @@ COPY simulator.py .
 COPY plotting.py .
 COPY ks_web_gui.py .
 COPY wsgi.py .
-COPY *.json ./
+COPY low_reynolds.json medium_reynolds.json high_reynolds.json ./
 
 # Create non-root user for security
 RUN useradd -m -u 1000 ksuser && \
