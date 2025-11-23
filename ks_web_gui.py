@@ -263,7 +263,8 @@ class KSWebGUI:
                             options=[
                                 {'label': 'Default', 'value': 'default'},
                                 {'label': 'Random', 'value': 'random'},
-                                {'label': 'Sine', 'value': 'sine'}
+                                {'label': 'Sine', 'value': 'sine'},
+                                {'label': 'Zero', 'value': 'zero'}
                             ],
                             value='default',
                             style={'marginBottom': '20px'}

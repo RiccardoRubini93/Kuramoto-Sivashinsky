@@ -93,7 +93,7 @@ class KSGUI:
         ttk.Label(params_frame, text="Initial Condition:").grid(row=4, column=0, sticky='w', pady=3)
         self.ic_var = tk.StringVar(value='default')
         ic_combo = ttk.Combobox(params_frame, textvariable=self.ic_var, 
-                                values=['default', 'random', 'sine'], 
+                                values=['default', 'random', 'sine', 'zero'], 
                                 state='readonly', width=8)
         ic_combo.grid(row=4, column=1, pady=3, padx=5)
         
