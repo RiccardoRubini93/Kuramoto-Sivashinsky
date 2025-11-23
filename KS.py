@@ -63,7 +63,14 @@ class KS(object):
             elif initial_condition == 'sine':
                 x = np.sin(4*np.pi*self.xx/(2*np.pi*L))
             elif initial_condition == 'zero':
+                # Start with zero and add small Gaussian perturbation at center
                 x = np.zeros(N)
+                # Gaussian parameters (chosen to create a very small perturbation)
+                center = np.pi * L  # Center of domain [0, 2*pi*L)
+                amplitude = 0.01  # Very small amplitude
+                width = L / 4  # Standard deviation of Gaussian
+                # Add Gaussian perturbation
+                x += amplitude * np.exp(-((self.xx - center)**2) / (2 * width**2))
             else:
                 raise ValueError(f"Unknown initial condition: {initial_condition}")
         else:
