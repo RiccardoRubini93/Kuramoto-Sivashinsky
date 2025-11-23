@@ -201,6 +201,8 @@ class KSGUI:
             self.N_var.set(str(preset['N']))
             self.dt_var.set(str(preset['dt']))
             self.diff_var.set(str(preset['diffusion']))
+            # Reset spectrum min wavelength to default when loading preset
+            self.spectrum_min_var.set(str(self.DEFAULT_SPECTRUM_MIN_WAVELENGTH))
             # Don't reset initial condition - let user keep their selection
             self.update_info(f"Loaded preset: {preset_name}\n{preset.get('description', '')}")
     
