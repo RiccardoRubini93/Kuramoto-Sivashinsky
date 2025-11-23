@@ -375,6 +375,7 @@ class KSWebGUI:
              Output('N-input', 'value'),
              Output('dt-input', 'value'),
              Output('diff-input', 'value'),
+             Output('ic-dropdown', 'value'),
              Output('info-text', 'children')],
             [Input('preset-dropdown', 'value')],
             prevent_initial_call=False
@@ -383,7 +384,9 @@ class KSWebGUI:
             """Update parameters when preset is selected."""
             preset = Config.PRESETS.get(preset_name, Config.PRESETS['medium_re'])
             info = f"Loaded preset: {preset_name}\n{preset.get('description', '')}"
-            return preset['L'], preset['N'], preset['dt'], preset['diffusion'], info
+            # Reset initial condition to 'default' when loading preset
+            # since presets don't specify an initial condition
+            return preset['L'], preset['N'], preset['dt'], preset['diffusion'], 'default', info
         
         @self.app.callback(
             [Output('simulation-state', 'data'),
